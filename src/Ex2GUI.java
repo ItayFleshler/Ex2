@@ -1,5 +1,3 @@
-package assignments.ex2;
-
 import java.awt.*;
 import java.io.IOException;
 
@@ -8,7 +6,7 @@ import java.io.IOException;
  * DO NOT CHANGE THIS INTERFACE!!
  * This is NOT a Junit class - as it tests GUI components which
  * should not be tested using Junit.
- * 
+ *
  * The Code uses the STDDraw class:
  * https://introcs.cs.princeton.edu/java/stdlib/javadoc/StdDraw.html
  * Note: a few minor changes were added to STDDraw suit the logic of Ex2:
