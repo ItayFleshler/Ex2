@@ -51,6 +51,11 @@ public class SCell implements Cell {
             return false;
         }
 
+        // בדיקה: האם חיבור סוגריים תקין
+        if (areParenthesesBalanced(formula)) {
+            return false; // אם סוגריים לא מאוזנים, זה אינו נוסחה חוקית
+        }
+
         String[] formParts = formula.split("[+\\-*/()]");
         for (String part : formParts) {
             if (!part.trim().isEmpty() && !isValidPart(part.trim())) {
@@ -61,19 +66,20 @@ public class SCell implements Cell {
         return true;
     }
 
-
-    // בדיקת האם חלק מסוים בנוסחה חוקי
-    private boolean isValidPart(String part) {
-        if (part.isEmpty()) {
-            return false;
+    // פונקציה לבדיקת איזון סוגריים
+    private boolean areParenthesesBalanced(String str) {
+        int balance = 0;
+        for (char ch : str.toCharArray()) {
+            if (ch == '(') {
+                balance++;
+            } else if (ch == ')') {
+                balance--;
+                if (balance < 0) {
+                    return true; // סוגר ימין ללא סוגר שמאל תואם
+                }
+            }
         }
-        try {
-            Double.parseDouble(part); // אם החלק מספר חוקי
-            return true;
-        } catch (NumberFormatException e) {
-            // אם החלק לכאורה מתייחס לתא אחר בטבלה
-            return part.matches("[A-Za-z]+[0-9]+");
-        }
+        return balance != 0; // אם נשאר אי-איזון, נוסחה לא חוקית
     }
 
     // חישוב ערך הנוסחה
@@ -83,11 +89,15 @@ public class SCell implements Cell {
             form = form.substring(1); // התעלמות מה־"="
         }
 
+        // בדיקה: האם סוגריים תקינים
+        if (areParenthesesBalanced(form)) {
+            throw new IllegalArgumentException("Unbalanced parentheses in formula: " + form);
+        }
+
         try {
             Double d = Double.parseDouble(form);
             return d;
         } catch (NumberFormatException e) {}
-
 
         // אם המחרוזת מוקפת בסוגריים, מבטלים את הסוגריים החיצוניים
         if (form.startsWith("(") && form.endsWith(")")) {
@@ -114,7 +124,7 @@ public class SCell implements Cell {
                     return leftValue * rightValue;
                 case "/":
                     if (rightValue == 0) {
-                        throw new ArithmeticException("Infinity"); // מניעת חילוק באפס
+                        throw new ArithmeticException("Division by zero"); // מניעת חילוק באפס
                     }
                     return leftValue / rightValue;
                 default:
@@ -125,7 +135,18 @@ public class SCell implements Cell {
         throw new IllegalArgumentException("Invalid formula: " + form); // במקרה שלא נמצא אופרטור ובמחרוזת לא נשאר מספר
     }
 
-
+    private boolean isValidPart(String part) {
+        if (part.isEmpty()) {
+            return false;
+        }
+        try {
+            Double.parseDouble(part); // אם החלק מספר חוקי
+            return true;
+        } catch (NumberFormatException e) {
+            // אם החלק לכאורה מתייחס לתא אחר בטבלה
+            return part.matches("[A-Za-z]+[0-9]+");
+        }
+    }
 
     // חידוש: חיפוש אופרטור ראשי מחוץ לסוגריים בלבד
     private int findMainOperator(String form) {
