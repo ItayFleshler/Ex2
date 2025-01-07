@@ -43,22 +43,24 @@ public class SCell implements Cell {
             return false;
         }
 
-        String formula = data.substring(1); // Ignore the "="
-        if (formula.startsWith("-")) {
-            formula = formula.substring(1); // Allow formulas like =-3+2
-        }
-        if (formula.isEmpty()) { // Empty formula is not valid
+        String formula = data.substring(1); // מתעלמים מה-=
+        if (formula.isEmpty()) {
             return false;
         }
 
-        // בדיקה: האם חיבור סוגריים תקין
+        // בדיקת איזון סוגריים
         if (areParenthesesBalanced(formula)) {
-            return false; // אם סוגריים לא מאוזנים, זה אינו נוסחה חוקית
+            return false;
         }
 
-        String[] formParts = formula.split("[+\\-*/()]");
+        // מוודאים שכל חלק בנוסחה הוא או מספר, או הפניה לתא, או אופרטור חוקי
+        String[] formParts = formula.split("(?<=[-+*/()])|(?=[-+*/()])");
         for (String part : formParts) {
-            if (!part.trim().isEmpty() && !isValidPart(part.trim())) {
+            part = part.trim();
+            if (!part.isEmpty() &&
+                    !part.matches("[A-Z][0-9]+") && // שינוי כאן - מאפשר מספרים גדולים מ-9
+                    !part.matches("-?\\d+(\\.\\d+)?") &&
+                    !part.matches("[-+*/()]")) {
                 return false;
             }
         }
@@ -66,7 +68,87 @@ public class SCell implements Cell {
         return true;
     }
 
-    // פונקציה לבדיקת איזון סוגריים
+    public Double computeForm(String form) {
+        if (form == null) {
+            return null;
+        }
+
+        form = form.replaceAll("\\s", ""); // הסרת רווחים
+        if (form.isEmpty()) {
+            return null;
+        }
+
+        if (form.startsWith("=")) {
+            form = form.substring(1);
+        }
+
+        // בדיקת סוגריים
+        if (areParenthesesBalanced(form)) {
+            throw new IllegalArgumentException("Unbalanced parentheses in formula: " + form);
+        }
+
+        try {
+            // ניסיון לפרש כמספר ישיר
+            return Double.parseDouble(form);
+        } catch (NumberFormatException ignored) {
+            // אם זה לא מספר ישיר, נמשיך לחישוב הנוסחה
+        }
+
+        // אם זו הפניה ישירה לתא (כמו A1)
+        if (form.matches("[A-Z][0-9]")) {
+            return 0.0; // ערך ברירת מחדל לתא
+        }
+
+        // טיפול בסוגריים
+        if (form.startsWith("(") && form.endsWith(")")) {
+            return computeForm(form.substring(1, form.length() - 1));
+        }
+
+        // חיפוש האופרטור הראשי
+        int operatorIndex = findMainOperator(form);
+        if (operatorIndex == -1) {
+            throw new IllegalArgumentException("No valid operator found in formula: " + form);
+        }
+
+        String leftOperand = form.substring(0, operatorIndex).trim();
+        String operator = form.substring(operatorIndex, operatorIndex + 1);
+        String rightOperand = form.substring(operatorIndex + 1).trim();
+
+        // וידוא שיש אופרנדים
+        if (leftOperand.isEmpty() || rightOperand.isEmpty()) {
+            throw new IllegalArgumentException("Missing operand in formula: " + form);
+        }
+
+        Double leftValue = computeForm(leftOperand);
+        Double rightValue = computeForm(rightOperand);
+
+        // בדיקה שהערכים חוקיים
+        if (leftValue == null || rightValue == null) {
+            return null;
+        }
+
+        try {
+            switch (operator) {
+                case "+":
+                    return leftValue + rightValue;
+                case "-":
+                    return leftValue - rightValue;
+                case "*":
+                    return leftValue * rightValue;
+                case "/":
+                    if (rightValue == 0) {
+                        throw new ArithmeticException("Division by zero");
+                    }
+                    return leftValue / rightValue;
+                default:
+                    throw new IllegalArgumentException("Unsupported operator: " + operator);
+            }
+        } catch (Exception e) {
+            System.err.println("Error computing formula: " + form + " - " + e.getMessage());
+            return null;
+        }
+    }
+
     private boolean areParenthesesBalanced(String str) {
         int balance = 0;
         for (char ch : str.toCharArray()) {
@@ -82,58 +164,6 @@ public class SCell implements Cell {
         return balance != 0; // אם נשאר אי-איזון, נוסחה לא חוקית
     }
 
-    // חישוב ערך הנוסחה
-    public Double computeForm(String form) {
-        form = form.replaceAll("\\s", ""); // הסרת רווחים מיותרים
-        if (form.startsWith("=")) {
-            form = form.substring(1); // התעלמות מה־"="
-        }
-
-        // בדיקה: האם סוגריים תקינים
-        if (areParenthesesBalanced(form)) {
-            throw new IllegalArgumentException("Unbalanced parentheses in formula: " + form);
-        }
-
-        try {
-            Double d = Double.parseDouble(form);
-            return d;
-        } catch (NumberFormatException e) {}
-
-        // אם המחרוזת מוקפת בסוגריים, מבטלים את הסוגריים החיצוניים
-        if (form.startsWith("(") && form.endsWith(")")) {
-            return computeForm(form.substring(1, form.length() - 1));
-        }
-
-        int operatorIndex = findMainOperator(form); // חיפוש אופרטור מרכזי
-        if (operatorIndex != -1) {
-            String leftOperand = form.substring(0, operatorIndex).trim(); // חלק שמאלי של הפורמולה
-            String operator = form.substring(operatorIndex, operatorIndex + 1); // האופרטור
-            String rightOperand = form.substring(operatorIndex + 1).trim(); // חלק ימני של הפורמולה
-
-            // חישוב ערכים של כל אחד מהאופרנדים
-            Double leftValue = computeForm(leftOperand);
-            Double rightValue = computeForm(rightOperand);
-
-            // ביצוע חישוב לפי סוג האופרטור
-            switch (operator) {
-                case "+":
-                    return leftValue + rightValue;
-                case "-":
-                    return leftValue - rightValue;
-                case "*":
-                    return leftValue * rightValue;
-                case "/":
-                    if (rightValue == 0) {
-                        throw new ArithmeticException("Division by zero"); // מניעת חילוק באפס
-                    }
-                    return leftValue / rightValue;
-                default:
-                    throw new IllegalArgumentException("Unsupported operator: " + operator);
-            }
-        }
-
-        throw new IllegalArgumentException("Invalid formula: " + form); // במקרה שלא נמצא אופרטור ובמחרוזת לא נשאר מספר
-    }
 
     private boolean isValidPart(String part) {
         if (part.isEmpty()) {
@@ -151,23 +181,45 @@ public class SCell implements Cell {
     // חידוש: חיפוש אופרטור ראשי מחוץ לסוגריים בלבד
     private int findMainOperator(String form) {
         int openParentheses = 0;
+        int lastAddOrSubtract = -1;
 
+        // עובר על המחרוזת פעמיים - פעם ראשונה מחפש + ו-
         for (int i = 0; i < form.length(); i++) {
             char ch = form.charAt(i);
 
             if (ch == '(') {
-                openParentheses++; // נתקלנו בסוגר שמאלי
+                openParentheses++;
             } else if (ch == ')') {
-                openParentheses--; // סוגר ימני
+                openParentheses--;
             }
 
-            // מחפש את האופרטור המרכזי מחוץ לסוגריים
-            if (openParentheses == 0 && (ch == '+' || ch == '-' || ch == '*' || ch == '/')) {
-                return i; // מחזיר את האינדקס של האופרטור
+            if (openParentheses == 0 && (ch == '+' || ch == '-')) {
+                lastAddOrSubtract = i;
             }
         }
 
-        return -1; // אם לא נמצא אופרטור
+        // אם מצאנו + או -, נחזיר אותו
+        if (lastAddOrSubtract != -1) {
+            return lastAddOrSubtract;
+        }
+
+        // אם לא מצאנו + או -, נחפש * או /
+        openParentheses = 0;
+        for (int i = 0; i < form.length(); i++) {
+            char ch = form.charAt(i);
+
+            if (ch == '(') {
+                openParentheses++;
+            } else if (ch == ')') {
+                openParentheses--;
+            }
+
+            if (openParentheses == 0 && (ch == '*' || ch == '/')) {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     // Field to store the evaluated value of the formula
