@@ -5,6 +5,7 @@
 ## Introduction
 This assignment focuses on designing and implementing a basic version of a spreadsheet. The spreadsheet is a 2D array of cells, each of which can be a string (text), a number (double), or a formula. The main goal here is to understand and implement the foundation of object-oriented design and recursion.
 
+## Image of the spreadsheet after all the implementations
 <img src="/images/spreadsheet_screenshot.png" alt="Ex2 Spreadsheet Screenshot" width="600"/>
 
 ## Assignment Overview
