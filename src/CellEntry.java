@@ -1,9 +1,6 @@
 /**
  * Represents a cell's coordinates and provides conversion between
  * spreadsheet notation (e.g., "A0") and array indices.
- * @author ItayFleshler
- * @version 1.0
- * @since 2025-01-08
  */
 public class CellEntry implements Index2D {
     private final int x;

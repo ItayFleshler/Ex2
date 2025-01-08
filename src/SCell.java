@@ -114,6 +114,16 @@ public class SCell implements Cell {
 
         form = form.replaceAll("\\s+", "");
 
+        // Check for invalid double operators
+        for (int i = 0; i < form.length() - 1; i++) {
+            char current = form.charAt(i);
+            char next = form.charAt(i + 1);
+            // If we find two consecutive operators, return null (will show as "Error")
+            if (isValidOperator(current) && isValidOperator(next)) {
+                return null;
+            }
+        }
+
         try {
             return Double.parseDouble(form);
         } catch (NumberFormatException ignored) {

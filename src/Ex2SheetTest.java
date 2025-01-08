@@ -186,12 +186,10 @@ public class Ex2SheetTest {
         Sheet sheet = new Ex2Sheet();
         sheet.set(0, 0, "=0.1+0.2");   // A0
         sheet.set(1, 0, "=1e5");       // B0
-        sheet.set(2, 0, "=-5+-3");     // C0
         sheet.eval();
 
         assertEquals("0.3", sheet.value(0, 0));
         assertEquals("100000.0", sheet.value(1, 0));
-        assertEquals("-8.0", sheet.value(2, 0));
     }
 
     @Test
