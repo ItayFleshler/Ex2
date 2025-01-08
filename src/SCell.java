@@ -3,9 +3,11 @@ public class SCell implements Cell {
     private int type;
     private String evaluatedValue;
     private Ex2Sheet sheet;
+    private String cellName;  // הוספת שדה לשם התא
 
-    public SCell(String s, Ex2Sheet sheet) {
+    public SCell(String s, Ex2Sheet sheet, String cellName) {
         this.sheet = sheet;
+        this.cellName = cellName;  // שמירת שם התא
         setData(s);
         setType(Ex2Utils.TEXT);
     }
@@ -37,7 +39,6 @@ public class SCell implements Cell {
 
     @Override
     public void setOrder(int t) {
-
     }
 
     public void setEvaluatedValue(String value) {
@@ -46,6 +47,10 @@ public class SCell implements Cell {
 
     public String getEvaluatedValue() {
         return evaluatedValue;
+    }
+
+    public String getCellName() {
+        return cellName;
     }
 
     public boolean isNumber() {
@@ -96,11 +101,11 @@ public class SCell implements Cell {
             } else if (parenthesesCount == 0 && isValidOperator(c)) {
                 lastOperator = i;
                 if (c == '+' || c == '-') {
-                    return i; // מחזיר מיד אם מצאנו + או -
+                    return i;
                 }
             }
         }
-        return lastOperator; // מחזיר את האופרטור האחרון שמצאנו (* או /)
+        return lastOperator;
     }
 
     private Double performOperation(Double left, Double right, char operator) {
@@ -118,22 +123,17 @@ public class SCell implements Cell {
             return null;
         }
 
-        // מסיר את סימן ה-= אם קיים
         if (form.startsWith("=")) {
             form = form.substring(1).trim();
         }
 
-        // מסיר רווחים
         form = form.replaceAll("\\s+", "");
 
-        // ניסיון ישיר לפרש כמספר (כולל מספרים מדעיים ושליליים)
         try {
             return Double.parseDouble(form);
         } catch (NumberFormatException ignored) {
-            // ממשיך אם זה לא מספר פשוט
         }
 
-        // מסיר סוגריים חיצוניים מיותרים
         while (form.startsWith("(") && form.endsWith(")")) {
             String inner = form.substring(1, form.length() - 1);
             if (isBalancedParentheses(inner)) {
@@ -141,14 +141,12 @@ public class SCell implements Cell {
                 try {
                     return Double.parseDouble(form);
                 } catch (NumberFormatException ignored) {
-                    // ממשיך אם זה לא מספר
                 }
             } else {
                 break;
             }
         }
 
-        // בדיקה אם זו הפניה לתא
         if (form.matches("[A-Z][0-9]+") && sheet != null) {
             int col = form.charAt(0) - 'A';
             int row = Integer.parseInt(form.substring(1));
@@ -160,19 +158,17 @@ public class SCell implements Cell {
             }
         }
 
-        // טיפול במספרים שליליים ואופרטורים כפולים
         int operatorIndex = -1;
         int parenthesesCount = 0;
         boolean foundOperator = false;
 
-        // מחפש את האופרטור האחרון ברמה הגבוהה ביותר
         for (int i = form.length() - 1; i >= 0; i--) {
             char c = form.charAt(i);
             if (c == ')') parenthesesCount++;
             else if (c == '(') parenthesesCount--;
             else if (parenthesesCount == 0 && (c == '+' || c == '-')) {
                 if (i > 0 && isValidOperator(form.charAt(i - 1))) {
-                    continue; // מדלג על אופרטורים כפולים
+                    continue;  // מדלג על אופרטורים כפולים
                 }
                 operatorIndex = i;
                 foundOperator = true;
@@ -182,7 +178,6 @@ public class SCell implements Cell {
             }
         }
 
-        // אם לא נמצא אופרטור, מנסה לפרש כמספר
         if (operatorIndex == -1) {
             try {
                 return Double.parseDouble(form);
@@ -191,12 +186,10 @@ public class SCell implements Cell {
             }
         }
 
-        // מפצל את הביטוי לשני חלקים
         String leftPart = form.substring(0, operatorIndex).trim();
         char operator = form.charAt(operatorIndex);
         String rightPart = form.substring(operatorIndex + 1).trim();
 
-        // טיפול במקרה של אופרטור בתחילת הביטוי
         if (leftPart.isEmpty()) {
             if (operator == '-') {
                 try {
@@ -221,6 +214,10 @@ public class SCell implements Cell {
 
     @Override
     public String toString() {
+        if (cellName != null && !cellName.isEmpty()) {
+            return cellName;  // מחזיר את שם התא
+        }
+
         if (evaluatedValue != null) {
             try {
                 double val = Double.parseDouble(evaluatedValue);

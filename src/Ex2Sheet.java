@@ -7,12 +7,20 @@ public class Ex2Sheet implements Sheet {
 
     public Ex2Sheet(int x, int y) {
         table = new SCell[x][y];
+        initializeTable(x, y);
+        eval();
+    }
+
+    private void initializeTable(int x, int y) {
         for (int i = 0; i < x; i++) {
             for (int j = 0; j < y; j++) {
-                table[i][j] = new SCell(Ex2Utils.EMPTY_CELL, this);
+                table[i][j] = new SCell(Ex2Utils.EMPTY_CELL, this, getCellName(i, j));
             }
         }
-        eval();
+    }
+
+    private String getCellName(int col, int row) {
+        return String.valueOf((char)('A' + col)) + row;
     }
 
     public Ex2Sheet() {
@@ -71,19 +79,18 @@ public class Ex2Sheet implements Sheet {
         if (!isIn(col, row)) return;
 
         if (val == null || val.trim().isEmpty()) {
-            table[col][row] = new SCell(Ex2Utils.EMPTY_CELL, this);
+            table[col][row] = new SCell(Ex2Utils.EMPTY_CELL, this, getCellName(col, row));
             return;
         }
 
-        table[col][row] = new SCell(val, this);
+        table[col][row] = new SCell(val, this, getCellName(col, row));
     }
-
 
     @Override
     public void eval() {
         int[][] depths = depth();
 
-        // איפוס ערכים מחושבים קודמים
+        // Reset previously evaluated values
         for (int i = 0; i < width(); i++) {
             for (int j = 0; j < height(); j++) {
                 if (table[i][j] instanceof SCell) {
@@ -92,7 +99,7 @@ public class Ex2Sheet implements Sheet {
             }
         }
 
-        // הערכת התאים לפי סדר העומק
+        // Evaluate cells by depth order
         for (int currentDepth = 0; currentDepth <= getMaxDepth(depths); currentDepth++) {
             for (int i = 0; i < width(); i++) {
                 for (int j = 0; j < height(); j++) {
@@ -116,7 +123,7 @@ public class Ex2Sheet implements Sheet {
         return maxDepth;
     }
 
-    public void evaluateCell(int x, int y) {
+    private void evaluateCell(int x, int y) {
         if (!isIn(x, y)) return;
 
         Cell cell = table[x][y];
@@ -125,13 +132,13 @@ public class Ex2Sheet implements Sheet {
         SCell sCell = (SCell) cell;
         String data = sCell.getData();
 
-        // אם התא ריק
+        // Empty cell
         if (data == null || data.trim().isEmpty()) {
             sCell.setEvaluatedValue("");
             return;
         }
 
-        // אם זו נוסחה
+        // Formula
         if (data.startsWith("=")) {
             Double result = sCell.computeForm(data);
             if (result != null) {
@@ -142,7 +149,7 @@ public class Ex2Sheet implements Sheet {
             return;
         }
 
-        // אם זה מספר רגיל
+        // Number
         if (sCell.isNumber()) {
             try {
                 double val = Double.parseDouble(data);
@@ -153,15 +160,8 @@ public class Ex2Sheet implements Sheet {
             return;
         }
 
-        // אם זה טקסט רגיל
+        // Text
         sCell.setEvaluatedValue(data);
-    }
-
-    private boolean isValidCellReference(String ref) {
-        CellEntry entry = new CellEntry(0, 0);
-        int col = entry.XCell(ref);
-        int row = entry.YCell(ref);
-        return isIn(col, row);
     }
 
     @Override
@@ -174,12 +174,14 @@ public class Ex2Sheet implements Sheet {
         int[][] depths = new int[width()][height()];
         boolean[][] visited = new boolean[width()][height()];
 
+        // Initialize depths to -1
         for (int i = 0; i < width(); i++) {
             for (int j = 0; j < height(); j++) {
                 depths[i][j] = -1;
             }
         }
 
+        // Calculate depth for each cell
         for (int i = 0; i < width(); i++) {
             for (int j = 0; j < height(); j++) {
                 if (table[i][j] != null) {
@@ -219,9 +221,8 @@ public class Ex2Sheet implements Sheet {
 
             while (matcher.find()) {
                 String ref = matcher.group();
-                CellEntry entry = new CellEntry(0, 0);
-                int nextCol = entry.XCell(ref);
-                int nextRow = entry.YCell(ref);
+                int nextCol = ref.charAt(0) - 'A';
+                int nextRow = Integer.parseInt(ref.substring(1));
 
                 if (isIn(nextCol, nextRow)) {
                     int d = calculateCellDepth(nextCol, nextRow, visited, depths);
@@ -233,7 +234,6 @@ public class Ex2Sheet implements Sheet {
             }
 
             return maxDepth + 1;
-
         } finally {
             visited[row][col] = false;
         }
@@ -303,7 +303,7 @@ public class Ex2Sheet implements Sheet {
                         cellData = "";
                     }
 
-                    table[i][j] = new SCell(cellData, this);
+                    table[i][j] = new SCell(cellData, this, getCellName(i, j));
                 }
             }
             eval();
@@ -311,14 +311,22 @@ public class Ex2Sheet implements Sheet {
     }
 
     private int[] parseCoordinates(String cords) {
-        cords = cords.trim().toUpperCase();
-        int col = cords.charAt(0) - 'A';
-        int row = Integer.parseInt(cords.substring(1)) - 1;
+        if (cords == null || cords.trim().isEmpty()) {
+            throw new IllegalArgumentException("Invalid coordinates: empty input");
+        }
 
-        if (!isIn(row, col)) {
+        cords = cords.trim().toUpperCase();
+        if (!cords.matches("[A-Z][0-9]+")) {
+            throw new IllegalArgumentException("Invalid coordinates format: " + cords);
+        }
+
+        int col = cords.charAt(0) - 'A';
+        int row = Integer.parseInt(cords.substring(1));
+
+        if (!isIn(col, row)) {
             throw new IllegalArgumentException("Invalid coordinates: " + cords);
         }
 
-        return new int[] { row, col };
+        return new int[] { col, row };
     }
 }
