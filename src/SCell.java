@@ -22,51 +22,6 @@ public class SCell implements Cell {
         setType(Ex2Utils.TEXT);
     }
 
-    @Override
-    public void setData(String s) {
-        line = s;
-    }
-
-    @Override
-    public String getData() {
-        return line;
-    }
-
-    @Override
-    public int getType() {
-        return type;
-    }
-
-    @Override
-    public void setType(int t) {
-        type = t;
-    }
-
-    @Override
-    public int getOrder() {
-        return 0;
-    }
-
-    @Override
-    public void setOrder(int t) {
-    }
-
-    /**
-     * Sets the evaluated value of the cell after formula computation
-     * @param value The computed value to set
-     */
-    public void setEvaluatedValue(String value) {
-        this.evaluatedValue = value;
-    }
-
-    /**
-     * Gets the cell's evaluated value after formula computation
-     * @return The evaluated value of the cell
-     */
-    public String getEvaluatedValue() {
-        return evaluatedValue;
-    }
-
     /**
      * Checks if the cell's content represents a valid number
      * @return true if the cell contains a valid number, false otherwise
@@ -83,6 +38,15 @@ public class SCell implements Cell {
             return false;
         }
     }
+
+    /**
+     * Checks if the cell's content represents a String
+     * @return true if the cell contains a String which isn't a formula and not a number, false otherwise
+     */
+    public boolean isText() {
+        return !isNumber() && !isForm();
+    }
+
     /**
      * Checks if the cell contains a formula (starts with '=')
      * @return true if the cell contains a formula, false otherwise
@@ -283,5 +247,50 @@ public class SCell implements Cell {
         }
 
         return data;
+    }
+
+    @Override
+    public void setData(String s) {
+        line = s;
+    }
+
+    @Override
+    public String getData() {
+        return line;
+    }
+
+    @Override
+    public int getType() {
+        return type;
+    }
+
+    @Override
+    public void setType(int t) {
+        type = t;
+    }
+
+    @Override
+    public int getOrder() {
+        return 0;
+    }
+
+    @Override
+    public void setOrder(int t) {
+    }
+
+    /**
+     * Sets the evaluated value of the cell after formula computation
+     * @param value The computed value to set
+     */
+    public void setEvaluatedValue(String value) {
+        this.evaluatedValue = value;
+    }
+
+    /**
+     * Gets the cell's evaluated value after formula computation
+     * @return The evaluated value of the cell
+     */
+    public String getEvaluatedValue() {
+        return evaluatedValue;
     }
 }
