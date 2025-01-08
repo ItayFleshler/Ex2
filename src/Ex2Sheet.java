@@ -247,10 +247,6 @@ public class Ex2Sheet implements Sheet {
             return Ex2Utils.ERR_CYCLE_FORM;
         }
 
-        if (visited[row][col]) {
-            return Ex2Utils.ERR_CYCLE_FORM;
-        }
-
         Cell cell = table[row][col];
         if (cell == null) {
             return Ex2Utils.ERR_CYCLE_FORM;
@@ -265,8 +261,19 @@ public class Ex2Sheet implements Sheet {
             return 0;
         }
 
-        // בדיקה האם יש תלויות בכלל
-        Pattern pattern = Pattern.compile("[A-Z][0-9]+");
+        // החלק החדש - בדיקה אם זה מספר בפורמט מדעי
+        String content = data.substring(1).trim();
+        if (content.matches("^-?\\d*\\.?\\d+[eE][-+]?\\d+$")) {
+            return 0;  // זה מספר בפורמט מדעי, אין צורך לחפש מעגליות
+        }
+
+        // המשך הקוד המקורי...
+        if (visited[row][col]) {
+            return Ex2Utils.ERR_CYCLE_FORM;
+        }
+
+        visited[row][col] = true;
+        Pattern pattern = Pattern.compile("[A-Za-z][0-9]+");
         Matcher matcher = pattern.matcher(data);
         if (!matcher.find()) {
             return 0;  // אין תלויות בתאים אחרים
@@ -278,7 +285,8 @@ public class Ex2Sheet implements Sheet {
 
         while (matcher.find()) {
             String ref = matcher.group();
-            int nextCol = ref.charAt(0) - 'A';
+            // המרה לאות גדולה בעת החישוב
+            int nextCol = Character.toUpperCase(ref.charAt(0)) - 'A';
             int nextRow = Integer.parseInt(ref.substring(1));
 
             // בדיקת תקינות התא המאוזכר
@@ -393,12 +401,13 @@ public class Ex2Sheet implements Sheet {
             throw new IllegalArgumentException("Invalid coordinates: empty input");
         }
 
-        cords = cords.trim().toUpperCase();
-        if (!cords.matches("[A-Z][0-9]+")) {
+        cords = cords.trim();  // Remove toUpperCase() to accept lowercase
+        if (!cords.matches("[A-Za-z][0-9]+")) {  // Modified regex to accept both cases
             throw new IllegalArgumentException("Invalid coordinates format: " + cords);
         }
 
-        int col = cords.charAt(0) - 'A';
+        // Convert to uppercase for calculation regardless of input case
+        int col = Character.toUpperCase(cords.charAt(0)) - 'A';
         int row = Integer.parseInt(cords.substring(1));
 
         if (!isIn(col, row)) {

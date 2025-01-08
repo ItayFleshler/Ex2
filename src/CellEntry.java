@@ -46,7 +46,7 @@ public class CellEntry implements Index2D {
             return -1;
         }
         char firstChar = c.charAt(0);
-        if (firstChar >= 'A' && firstChar <= 'Z') {
+        if (firstChar >= 'A' && firstChar <= 'Z' ) {
             return firstChar - 'A';
         }
         return -1;

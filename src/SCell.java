@@ -108,27 +108,31 @@ public class SCell implements Cell {
             return null;
         }
 
+        // הסר את סימן ה-= אם קיים
         if (form.startsWith("=")) {
             form = form.substring(1).trim();
         }
 
         form = form.replaceAll("\\s+", "");
 
+        // נסיון ישיר לפרסר כמספר, לפני כל בדיקה אחרת!
+        try {
+            double value = Double.parseDouble(form);
+            return value;  // אם הצלחנו לפרסר, זה בטוח מספר (כולל פורמט מדעי)
+        } catch (NumberFormatException ignored) {
+            // אם לא הצלחנו לפרסר כמספר, נמשיך לשאר הבדיקות
+        }
+
         // Check for invalid double operators
         for (int i = 0; i < form.length() - 1; i++) {
             char current = form.charAt(i);
             char next = form.charAt(i + 1);
-            // If we find two consecutive operators, return null (will show as "Error")
             if (isValidOperator(current) && isValidOperator(next)) {
                 return null;
             }
         }
 
-        try {
-            return Double.parseDouble(form);
-        } catch (NumberFormatException ignored) {
-        }
-
+        // Handle parentheses
         while (form.startsWith("(") && form.endsWith(")")) {
             String inner = form.substring(1, form.length() - 1);
             if (isBalancedParentheses(inner)) {
@@ -142,16 +146,25 @@ public class SCell implements Cell {
             }
         }
 
-        if (form.matches("[A-Z][0-9]+") && sheet != null) {
-            int col = form.charAt(0) - 'A';
-            int row = Integer.parseInt(form.substring(1));
-            String cellValue = sheet.value(col, row);
+        // בדיקת הפניית תא - רק אם זה בדיוק אות אחת ואחריה מספרים
+        if (form.matches("^[A-Za-z][0-9]+$") && !form.matches(".*\\d+[eE][-+]?\\d+")) {
+            // וידוא נוסף שזה לא מספר בפורמט מדעי
             try {
-                return Double.parseDouble(cellValue);
+                Double.parseDouble(form);
+                return Double.parseDouble(form);  // אם זה מספר תקין, נחזיר אותו
             } catch (NumberFormatException e) {
-                return null;
+                // אם זה לא מספר, נטפל בו כהפניית תא
+                int col = Character.toUpperCase(form.charAt(0)) - 'A';
+                int row = Integer.parseInt(form.substring(1));
+                String cellValue = sheet.value(col, row);
+                try {
+                    return Double.parseDouble(cellValue);
+                } catch (NumberFormatException ex) {
+                    return null;
+                }
             }
         }
+
 
         int operatorIndex = -1;
         int parenthesesCount = 0;
