@@ -176,20 +176,20 @@ public class Ex2Sheet implements Sheet {
 
         // Formula
         if (data.startsWith("=")) {
-            // בדיקת תלות מעגלית
+            // Check for circular dependency
             int depth = calculateCellDepth(x, y, new boolean[width()][height()]);
             if (depth == Ex2Utils.ERR_CYCLE_FORM) {
-                sCell.setType(Ex2Utils.ERR_CYCLE_FORM);  // עדכון הטיפוס
+                sCell.setType(Ex2Utils.ERR_CYCLE_FORM);  // Update cell type
                 sCell.setEvaluatedValue(Ex2Utils.ERR_CYCLE);
                 return;
             }
 
             Double result = sCell.computeForm(data);
             if (result != null) {
-                sCell.setType(Ex2Utils.FORM);  // נוסחה תקינה
+                sCell.setType(Ex2Utils.FORM);  // Valid formula
                 sCell.setEvaluatedValue(String.format("%.1f", result));
             } else {
-                sCell.setType(Ex2Utils.ERR_FORM_FORMAT);  // שגיאת פורמט
+                sCell.setType(Ex2Utils.ERR_FORM_FORMAT);  // Formula format error
                 sCell.setEvaluatedValue(Ex2Utils.ERR_FORM);
             }
             return;
@@ -258,58 +258,63 @@ public class Ex2Sheet implements Sheet {
         }
 
         if (!data.startsWith("=")) {
-            return 0;
+            return 0;  // Not a formula - no dependencies
         }
 
-        // החלק החדש - בדיקה אם זה מספר בפורמט מדעי
         String content = data.substring(1).trim();
         if (content.matches("^-?\\d*\\.?\\d+[eE][-+]?\\d+$")) {
-            return 0;  // זה מספר בפורמט מדעי, אין צורך לחפש מעגליות
+            return 0;  // Scientific notation - treat as literal value
         }
 
-        // המשך הקוד המקורי...
-        if (visited[row][col]) {
-            return Ex2Utils.ERR_CYCLE_FORM;
-        }
-
-        visited[row][col] = true;
         Pattern pattern = Pattern.compile("[A-Za-z][0-9]+");
         Matcher matcher = pattern.matcher(data);
         if (!matcher.find()) {
-            return 0;  // אין תלויות בתאים אחרים
+            return 0;  // No cell references - no dependencies
         }
 
-        visited[row][col] = true;
         matcher.reset();
         int maxDepth = 0;
 
+        // Create temporary visited array to allow self-reference in formulas
+        boolean[][] tempVisited = new boolean[width()][height()];
+        for (int i = 0; i < width(); i++) {
+            System.arraycopy(visited[i], 0, tempVisited[i], 0, height());
+        }
+        tempVisited[row][col] = true;
+
         while (matcher.find()) {
+            // Extract referenced cell coordinates
             String ref = matcher.group();
-            // המרה לאות גדולה בעת החישוב
             int nextCol = Character.toUpperCase(ref.charAt(0)) - 'A';
             int nextRow = Integer.parseInt(ref.substring(1));
 
-            // בדיקת תקינות התא המאוזכר
             if (!isIn(nextCol, nextRow)) {
-                visited[row][col] = false;
                 return Ex2Utils.ERR_CYCLE_FORM;
             }
 
             Cell dependentCell = table[nextCol][nextRow];
             if (dependentCell == null || dependentCell.getData() == null || dependentCell.getData().trim().isEmpty()) {
-                visited[row][col] = false;
                 return Ex2Utils.ERR_CYCLE_FORM;
             }
 
-            int depth = calculateCellDepth(nextCol, nextRow, visited);
+            // Check for true circular dependencies using original visited array
+            if (visited[nextCol][nextRow]) {
+                return Ex2Utils.ERR_CYCLE_FORM;
+            }
+
+            // Recursive depth calculation using temporary visited array
+            int depth = calculateCellDepth(nextCol, nextRow, tempVisited);
             if (depth == Ex2Utils.ERR_CYCLE_FORM) {
-                visited[row][col] = false;
                 return Ex2Utils.ERR_CYCLE_FORM;
             }
             maxDepth = Math.max(maxDepth, depth);
         }
 
-        visited[row][col] = false;
+        // Update original visited array only if no circular dependencies found
+        for (int i = 0; i < width(); i++) {
+            System.arraycopy(tempVisited[i], 0, visited[i], 0, height());
+        }
+
         return maxDepth + 1;
     }
 
