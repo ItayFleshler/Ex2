@@ -292,6 +292,8 @@ public class SCell implements Cell {
             }
         }
     }
+
+
     @Override
     public String getData() {
         return line;
