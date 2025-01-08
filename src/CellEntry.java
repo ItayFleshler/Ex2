@@ -51,7 +51,7 @@ public class CellEntry implements Index2D {
         }
         return -1;
     }
-    
+
     /**
      * Extracts row index from cell reference
      * @param c Cell reference string (e.g., "A0")

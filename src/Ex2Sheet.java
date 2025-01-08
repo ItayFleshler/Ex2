@@ -35,7 +35,7 @@ public class Ex2Sheet implements Sheet {
     private void initializeTable(int x, int y) {
         for (int i = 0; i < x; i++) {
             for (int j = 0; j < y; j++) {
-                table[i][j] = new SCell(Ex2Utils.EMPTY_CELL, this, getCellName(i, j));
+                table[i][j] = new SCell(Ex2Utils.EMPTY_CELL, this);
             }
         }
     }
@@ -107,11 +107,11 @@ public class Ex2Sheet implements Sheet {
         if (!isIn(col, row)) return;
 
         if (val == null || val.trim().isEmpty()) {
-            table[col][row] = new SCell(Ex2Utils.EMPTY_CELL, this, getCellName(col, row));
+            table[col][row] = new SCell(Ex2Utils.EMPTY_CELL, this);
             return;
         }
 
-        table[col][row] = new SCell(val, this, getCellName(col, row));
+        table[col][row] = new SCell(val, this);
     }
 
     /**
@@ -386,7 +386,7 @@ public class Ex2Sheet implements Sheet {
                         cellData = "";
                     }
 
-                    table[i][j] = new SCell(cellData, this, getCellName(i, j));
+                    table[i][j] = new SCell(cellData, this);
                 }
             }
             eval();

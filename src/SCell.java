@@ -7,17 +7,14 @@ public class SCell implements Cell {
     private int type;
     private String evaluatedValue;
     private final Ex2Sheet sheet;
-    private final String cellName;
 
     /**
      * Creates a new cell with initial value, parent sheet and cell name.
      * @param s Initial cell content
      * @param sheet Parent spreadsheet
-     * @param cellName The cell's reference name (e.g., "A0")
      */
-    public SCell(String s, Ex2Sheet sheet, String cellName) {
+    public SCell(String s, Ex2Sheet sheet) {
         this.sheet = sheet;
-        this.cellName = cellName;
         setData(s);
         setType(Ex2Utils.TEXT);
     }
@@ -225,9 +222,6 @@ public class SCell implements Cell {
      */
     @Override
     public String toString() {
-        if (cellName != null && !cellName.isEmpty()) {
-            return cellName;
-        }
 
         if (evaluatedValue != null) {
             try {
