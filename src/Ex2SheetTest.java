@@ -2,6 +2,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 
 public class Ex2SheetTest {
 
@@ -228,8 +229,8 @@ public class Ex2SheetTest {
         sheet.set(1, 0, "=A0");      // B0 depends on A0
 
         sheet.eval();
-        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(0, 0));
-        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(1, 0));
+        assertEquals("ERR_CYCLE!", sheet.value(0, 0));
+        assertEquals("ERR_CYCLE!", sheet.value(1, 0));
     }
 
     @Test
@@ -241,10 +242,10 @@ public class Ex2SheetTest {
         sheet.set(3, 0, "=A0");      // D0 -> A0 (creates cycle)
 
         sheet.eval();
-        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(0, 0));
-        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(1, 0));
-        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(2, 0));
-        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(3, 0));
+        assertEquals("ERR_CYCLE!", sheet.value(0, 0));
+        assertEquals("ERR_CYCLE!", sheet.value(1, 0));
+        assertEquals("ERR_CYCLE!", sheet.value(2, 0));
+        assertEquals("ERR_CYCLE!", sheet.value(3, 0));
     }
 
     @Test
@@ -253,7 +254,7 @@ public class Ex2SheetTest {
         sheet.set(0, 0, "=A0");      // Cell depends on itself
 
         sheet.eval();
-        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(0, 0));
+        assertEquals("ERR_CYCLE!", sheet.value(0, 0));
     }
 
     @Test
@@ -263,8 +264,8 @@ public class Ex2SheetTest {
         sheet.set(1, 0, "=A0*2");    // B0 depends on A0
 
         sheet.eval();
-        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(0, 0));
-        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(1, 0));
+        assertEquals("ERR_CYCLE!", sheet.value(0, 0));
+        assertEquals("ERR_CYCLE!", sheet.value(1, 0));
     }
 
     @Test
@@ -274,8 +275,8 @@ public class Ex2SheetTest {
         sheet.set(1, 0, "=A0/2");    // B0 depends on A0
 
         sheet.eval();
-        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(0, 0));
-        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(1, 0));
+        assertEquals("ERR_CYCLE!", sheet.value(0, 0));
+        assertEquals("ERR_CYCLE!", sheet.value(1, 0));
     }
 
     @Test
@@ -287,9 +288,82 @@ public class Ex2SheetTest {
         sheet.set(3, 0, "=A0+1");    // D0 depends on cell in cycle
 
         sheet.eval();
-        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(0, 0));
-        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(1, 0));
-        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(2, 0));
-        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(3, 0));
+        assertEquals("ERR_CYCLE!", sheet.value(0, 0));
+        assertEquals("ERR_CYCLE!", sheet.value(1, 0));
+        assertEquals("ERR_CYCLE!", sheet.value(2, 0));
+        assertEquals("ERR_CYCLE!", sheet.value(3, 0));
+    }
+
+    private void verifyArrayEquality(String message, int[][] expected, int[][] actual) {
+        if (!Arrays.deepEquals(expected, actual)) {
+            throw new AssertionError(message + "\nExpected: " + Arrays.deepToString(expected) + "\nActual: " + Arrays.deepToString(actual));
+        }
+    }
+
+    @Test
+    public void testEmptyCellDependency() {
+        Ex2Sheet sheet = new Ex2Sheet(3, 3);
+        sheet.set(0, 0, "=B0+1");    // A0 depends on B0 (empty)
+
+        int[][] result = sheet.depth();
+
+        assertEquals(-1, result[0][0]); // A0 has invalid depth due to dependency on an empty cell
+        assertEquals(0, result[0][1]); // B0 is empty, so depth is 0
+    }
+
+    @Test
+    public void testLongDependencyChain() {
+        Ex2Sheet sheet = new Ex2Sheet(5, 5);
+        sheet.set(0, 0, "1");        // A0
+        sheet.set(1, 0, "=A0+1");    // B0
+        sheet.set(2, 0, "=B0+2");    // C0
+        sheet.set(3, 0, "=C0+3");    // D0
+        sheet.set(4, 0, "=D0+4");    // E0
+
+        int[][] result = sheet.depth();
+
+        assertEquals(0, result[0][0]);
+        assertEquals(1, result[1][0]);
+        assertEquals(2, result[2][0]);
+        assertEquals(3, result[3][0]);
+        assertEquals(4, result[4][0]);
+    }
+
+    @Test
+    public void testBlankSheetDepth() {
+        Ex2Sheet sheet = new Ex2Sheet(3, 3);
+        int[][] result = sheet.depth();
+
+        assertEquals(0, result[0][0]);
+        assertEquals(0, result[1][1]);
+        assertEquals(0, result[2][2]);
+    }
+
+    @Test
+    public void testMixedFormulaTypes() {
+        Ex2Sheet sheet = new Ex2Sheet(3, 3);
+        sheet.set(0, 0, "10");
+        sheet.set(0, 1, "=A0+5");
+        sheet.set(1, 0, "=10+20");
+        sheet.set(1, 1, "15");
+
+        int[][] result = sheet.depth();
+
+        assertEquals(0, result[0][0]);
+        assertEquals(1, result[0][1]);
+        assertEquals(0, result[1][0]);
+        assertEquals(0, result[1][1]);
+    }
+
+    @Test
+    public void testConstantFormula() {
+        Ex2Sheet sheet = new Ex2Sheet(3, 3);
+        sheet.set(0, 0, "5");
+        sheet.set(0, 1, "=5*2");
+
+        int[][] result = sheet.depth();
+
+        assertEquals(0, result[0][0]);
+        assertEquals(0, result[0][1]);
     }
 }

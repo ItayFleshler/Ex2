@@ -229,22 +229,13 @@ public class Ex2Sheet implements Sheet {
         int[][] depths = new int[width()][height()];
         boolean[][] visited = new boolean[width()][height()];
 
-        // Initialize depths to -1
         for (int i = 0; i < width(); i++) {
             for (int j = 0; j < height(); j++) {
-                depths[i][j] = -1;
-            }
-        }
-
-        // Calculate depth for each cell
-        for (int i = 0; i < width(); i++) {
-            for (int j = 0; j < height(); j++) {
-                if (table[i][j] != null) {
-                    depths[i][j] = calculateCellDepth(i, j, visited);
+                if (!visited[i][j]) {
+                    depths[i][j] = calculateCellDepth(i, j, new boolean[width()][height()]);
                 }
             }
         }
-
         return depths;
     }
 
@@ -252,29 +243,37 @@ public class Ex2Sheet implements Sheet {
      * Calculates the dependency depth of a single cell
      */
     private int calculateCellDepth(int row, int col, boolean[][] visited) {
-        if (!isIn(row, col) || table[row][col] == null) {
-            return 0;
+        if (!isIn(row, col)) {
+            return Ex2Utils.ERR_CYCLE_FORM;
         }
 
         if (visited[row][col]) {
-            return Ex2Utils.ERR_CYCLE_FORM;  // שימוש בקבוע המתאים
+            return Ex2Utils.ERR_CYCLE_FORM;
         }
 
         Cell cell = table[row][col];
-        String data = cell.getData();
+        if (cell == null) {
+            return Ex2Utils.ERR_CYCLE_FORM;
+        }
 
-        if (data == null || data.trim().isEmpty() || !data.startsWith("=")) {
+        String data = cell.getData();
+        if (data == null || data.trim().isEmpty()) {
             return 0;
         }
 
+        if (!data.startsWith("=")) {
+            return 0;
+        }
+
+        // בדיקה האם יש תלויות בכלל
         Pattern pattern = Pattern.compile("[A-Z][0-9]+");
         Matcher matcher = pattern.matcher(data);
         if (!matcher.find()) {
-            return 0;
+            return 0;  // אין תלויות בתאים אחרים
         }
 
-        matcher.reset();
         visited[row][col] = true;
+        matcher.reset();
         int maxDepth = 0;
 
         while (matcher.find()) {
@@ -282,7 +281,14 @@ public class Ex2Sheet implements Sheet {
             int nextCol = ref.charAt(0) - 'A';
             int nextRow = Integer.parseInt(ref.substring(1));
 
+            // בדיקת תקינות התא המאוזכר
             if (!isIn(nextCol, nextRow)) {
+                visited[row][col] = false;
+                return Ex2Utils.ERR_CYCLE_FORM;
+            }
+
+            Cell dependentCell = table[nextCol][nextRow];
+            if (dependentCell == null || dependentCell.getData() == null || dependentCell.getData().trim().isEmpty()) {
                 visited[row][col] = false;
                 return Ex2Utils.ERR_CYCLE_FORM;
             }
