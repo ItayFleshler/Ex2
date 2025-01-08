@@ -1,6 +1,4 @@
-// Add your documentation below:
-
-public class CellEntry  implements Index2D {
+public class CellEntry implements Index2D {
     private int x,y;
 
     @Override
@@ -9,6 +7,7 @@ public class CellEntry  implements Index2D {
         letter = (char) (letter + x);
         return letter + "" + (y);
     }
+
     public CellEntry(int x, int y) {
         this.x = x;
         this.y = y;
@@ -16,35 +15,47 @@ public class CellEntry  implements Index2D {
 
     @Override
     public boolean isValid() {
-         return x >= 0 && x < 26 && y >= 0 && y < 100;
-    }
-    public int XCell (String c){
-        if (c.length() <= 1)
-            return -1;
-        if (c.charAt(0) >= 'A' && c.charAt(0) <= 'Z' && c.charAt(1) >= '0' && c.charAt(1) <= '9')
-            return c.charAt(0) - 'A';
-        return -1;
+        return x >= 0 && x < 26 && y >= 0 && y < 100;
     }
 
-    public int YCell (String c){
-        if (c.length() <= 1)
+    public int XCell(String c) {
+        if (c == null || c.isEmpty()) {
             return -1;
-        while (!c.isEmpty() && c.charAt(0) >= 'A' && c.charAt(0) <= 'Z'){
-            c = c.substring(1);
         }
-        try {
-            int i = Integer.parseInt(c);
-            if (i >= 0 && i < 100)
-                return i;
-            return -1;
-        } catch (NumberFormatException _) {}
+        // מטפל באות הראשונה בלבד
+        char firstChar = c.charAt(0);
+        if (firstChar >= 'A' && firstChar <= 'Z') {
+            return firstChar - 'A';
+        }
         return -1;
     }
 
+    public int YCell(String c) {
+        if (c == null || c.isEmpty() || c.length() < 2) {
+            return -1;
+        }
+
+        // מוצא את החלק המספרי (כל מה שאחרי האות)
+        String numberPart = c.substring(1);
+        try {
+            int number = Integer.parseInt(numberPart);
+            // בדיקה שהמספר בטווח תקין
+            if (number >= 0 && number < 100) {
+                return number;
+            }
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+        return -1;
+    }
 
     @Override
-    public int getX() {return x;}
+    public int getX() {
+        return x;
+    }
 
     @Override
-    public int getY() {return y;}
+    public int getY() {
+        return y;
+    }
 }

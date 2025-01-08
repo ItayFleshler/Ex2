@@ -1,4 +1,4 @@
-import java.io.IOException;
+import java.io.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -9,7 +9,7 @@ public class Ex2Sheet implements Sheet {
         table = new SCell[x][y];
         for (int i = 0; i < x; i++) {
             for (int j = 0; j < y; j++) {
-                table[i][j] = new SCell(Ex2Utils.EMPTY_CELL);
+                table[i][j] = new SCell(Ex2Utils.EMPTY_CELL, this);
             }
         }
         eval();
@@ -29,19 +29,13 @@ public class Ex2Sheet implements Sheet {
         if (cell instanceof SCell) {
             SCell sCell = (SCell) cell;
             String evaluatedValue = sCell.getEvaluatedValue();
-            if (evaluatedValue != null && !evaluatedValue.isEmpty()) {
+            if (evaluatedValue != null) {
                 return evaluatedValue;
             }
-            // אם אין ערך מחושב, מנסה לחשב מחדש
-            eval();
-            evaluatedValue = sCell.getEvaluatedValue();
-            if (evaluatedValue != null && !evaluatedValue.isEmpty()) {
-                return evaluatedValue;
-            }
-            String data = cell.getData();
-            return data != null && !data.trim().isEmpty() ? data : Ex2Utils.EMPTY_CELL;
+            evaluateCell(x, y);
+            return sCell.getEvaluatedValue();
         }
-        return Ex2Utils.EMPTY_CELL;
+        return "";
     }
 
     @Override
@@ -73,27 +67,23 @@ public class Ex2Sheet implements Sheet {
     }
 
     @Override
-    public void set(int x, int y, String s) {
-        if (isIn(x, y)) {
-            Cell c = new SCell(s);
-            table[x][y] = c;
-            eval();
+    public void set(int col, int row, String val) {
+        if (!isIn(col, row)) return;
+
+        if (val == null || val.trim().isEmpty()) {
+            table[col][row] = new SCell(Ex2Utils.EMPTY_CELL, this);
+            return;
         }
+
+        table[col][row] = new SCell(val, this);
     }
+
 
     @Override
     public void eval() {
         int[][] depths = depth();
 
-        int maxDepth = 0;
-        for (int i = 0; i < width(); i++) {
-            for (int j = 0; j < height(); j++) {
-                if (depths[i][j] > maxDepth) {
-                    maxDepth = depths[i][j];
-                }
-            }
-        }
-
+        // איפוס ערכים מחושבים קודמים
         for (int i = 0; i < width(); i++) {
             for (int j = 0; j < height(); j++) {
                 if (table[i][j] instanceof SCell) {
@@ -102,7 +92,8 @@ public class Ex2Sheet implements Sheet {
             }
         }
 
-        for (int currentDepth = 0; currentDepth <= maxDepth; currentDepth++) {
+        // הערכת התאים לפי סדר העומק
+        for (int currentDepth = 0; currentDepth <= getMaxDepth(depths); currentDepth++) {
             for (int i = 0; i < width(); i++) {
                 for (int j = 0; j < height(); j++) {
                     if (depths[i][j] == currentDepth) {
@@ -113,103 +104,64 @@ public class Ex2Sheet implements Sheet {
         }
     }
 
-    private void evaluateCell(int row, int col) {
-        if (!isIn(row, col)) {
-            return;
+    private int getMaxDepth(int[][] depths) {
+        int maxDepth = 0;
+        for (int[] row : depths) {
+            for (int depth : row) {
+                if (depth > maxDepth) {
+                    maxDepth = depth;
+                }
+            }
         }
+        return maxDepth;
+    }
 
-        Cell cell = table[row][col];
-        if (!(cell instanceof SCell)) {
-            return;
-        }
+    public void evaluateCell(int x, int y) {
+        if (!isIn(x, y)) return;
+
+        Cell cell = table[x][y];
+        if (!(cell instanceof SCell)) return;
 
         SCell sCell = (SCell) cell;
         String data = sCell.getData();
 
+        // אם התא ריק
         if (data == null || data.trim().isEmpty()) {
             sCell.setEvaluatedValue("");
             return;
         }
 
-        if (!sCell.isForm()) {
-            sCell.setEvaluatedValue(data);
-            return;
-        }
-
-        try {
-            // בדיקה אם זו הפניה ישירה לתא (למשל =A1)
-            if (data.matches("=[A-Z][0-9]+")) {
-                String cellRef = data.substring(1); // מסיר את ה-=
-                CellEntry entry = new CellEntry(0, 0);
-                int refCol = entry.XCell(cellRef);
-                int refRow = entry.YCell(cellRef);
-
-                if (isIn(refCol, refRow)) {
-                    Cell refCell = table[refCol][refRow];
-                    if (refCell instanceof SCell) {
-                        SCell refSCell = (SCell) refCell;
-                        String refValue = refSCell.getEvaluatedValue();
-                        if (refValue != null && !refValue.isEmpty()) {
-                            sCell.setEvaluatedValue(refValue);
-                        } else {
-                            sCell.setEvaluatedValue(refSCell.getData());
-                        }
-                    }
-                }
-                return;
-            }
-
-            String formula = data;
-            Pattern cellPattern = Pattern.compile("[A-Z][0-9]+");
-            Matcher matcher = cellPattern.matcher(formula);
-            StringBuffer evaluatedFormula = new StringBuffer();
-
-            while (matcher.find()) {
-                String cellRef = matcher.group();
-                CellEntry entry = new CellEntry(0, 0);
-                int refCol = entry.XCell(cellRef);
-                int refRow = entry.YCell(cellRef);
-
-                if (refCol == -1 || refRow == -1) {
-                    continue;
-                }
-
-                String cellValue = "0";
-                if (isIn(refCol, refRow)) {
-                    Cell refCell = table[refCol][refRow];
-                    if (refCell instanceof SCell) {
-                        SCell refSCell = (SCell) refCell;
-                        String evaluatedValue = refSCell.getEvaluatedValue();
-                        if (evaluatedValue != null && !evaluatedValue.isEmpty()) {
-                            cellValue = evaluatedValue;
-                        } else {
-                            evaluateCell(refCol, refRow);
-                            evaluatedValue = refSCell.getEvaluatedValue();
-                            if (evaluatedValue != null && !evaluatedValue.isEmpty()) {
-                                cellValue = evaluatedValue;
-                            } else {
-                                cellValue = refSCell.getData();
-                                if (cellValue.startsWith("=")) {
-                                    cellValue = "0";
-                                }
-                            }
-                        }
-                    }
-                }
-                matcher.appendReplacement(evaluatedFormula, cellValue);
-            }
-            matcher.appendTail(evaluatedFormula);
-
-            Double result = sCell.computeForm(evaluatedFormula.toString());
+        // אם זו נוסחה
+        if (data.startsWith("=")) {
+            Double result = sCell.computeForm(data);
             if (result != null) {
-                sCell.setEvaluatedValue(result.toString());
+                sCell.setEvaluatedValue(String.format("%.1f", result));
             } else {
                 sCell.setEvaluatedValue("Error");
             }
-        } catch (Exception e) {
-            System.err.println("Error evaluating cell [" + row + "," + col + "]: " + e.getMessage());
-            sCell.setEvaluatedValue("Error");
+            return;
         }
+
+        // אם זה מספר רגיל
+        if (sCell.isNumber()) {
+            try {
+                double val = Double.parseDouble(data);
+                sCell.setEvaluatedValue(String.format("%.1f", val));
+            } catch (NumberFormatException e) {
+                sCell.setEvaluatedValue(data);
+            }
+            return;
+        }
+
+        // אם זה טקסט רגיל
+        sCell.setEvaluatedValue(data);
+    }
+
+    private boolean isValidCellReference(String ref) {
+        CellEntry entry = new CellEntry(0, 0);
+        int col = entry.XCell(ref);
+        int row = entry.YCell(ref);
+        return isIn(col, row);
     }
 
     @Override
@@ -224,16 +176,24 @@ public class Ex2Sheet implements Sheet {
 
         for (int i = 0; i < width(); i++) {
             for (int j = 0; j < height(); j++) {
-                depths[i][j] = calculateCellDepth(i, j, visited);
+                depths[i][j] = -1;
+            }
+        }
+
+        for (int i = 0; i < width(); i++) {
+            for (int j = 0; j < height(); j++) {
+                if (table[i][j] != null) {
+                    depths[i][j] = calculateCellDepth(i, j, visited, depths);
+                }
             }
         }
 
         return depths;
     }
 
-    private int calculateCellDepth(int row, int col, boolean[][] visited) {
-        if (!isIn(row, col)) {
-            return 0;
+    private int calculateCellDepth(int row, int col, boolean[][] visited, int[][] depths) {
+        if (!isIn(row, col) || table[row][col] == null) {
+            return -1;
         }
 
         if (visited[row][col]) {
@@ -241,14 +201,12 @@ public class Ex2Sheet implements Sheet {
         }
 
         Cell cell = table[row][col];
-        if (!(cell instanceof SCell)) {
+        if (!(cell instanceof SCell) || !((SCell) cell).isForm()) {
             return 0;
         }
 
-        SCell sCell = (SCell) cell;
-        String data = sCell.getData();
-
-        if (data == null || data.trim().isEmpty() || !sCell.isForm()) {
+        String data = cell.getData();
+        if (data == null || data.trim().isEmpty()) {
             return 0;
         }
 
@@ -256,28 +214,29 @@ public class Ex2Sheet implements Sheet {
         int maxDepth = 0;
 
         try {
-            Pattern cellPattern = Pattern.compile("[A-Z][0-9]");
-            Matcher matcher = cellPattern.matcher(data);
+            Pattern pattern = Pattern.compile("[A-Z][0-9]+");
+            Matcher matcher = pattern.matcher(data);
 
             while (matcher.find()) {
-                String cellRef = matcher.group();
-                int refCol = cellRef.charAt(0) - 'A';
-                int refRow = cellRef.charAt(1) - '0';
+                String ref = matcher.group();
+                CellEntry entry = new CellEntry(0, 0);
+                int nextCol = entry.XCell(ref);
+                int nextRow = entry.YCell(ref);
 
-                int refDepth = calculateCellDepth(refRow, refCol, visited);
-
-                if (refDepth == -1) {
-                    return -1;
+                if (isIn(nextCol, nextRow)) {
+                    int d = calculateCellDepth(nextCol, nextRow, visited, depths);
+                    if (d == -1) {
+                        return -1;
+                    }
+                    maxDepth = Math.max(maxDepth, d);
                 }
-
-                maxDepth = Math.max(maxDepth, refDepth);
             }
+
+            return maxDepth + 1;
 
         } finally {
             visited[row][col] = false;
         }
-
-        return maxDepth + 1;
     }
 
     @Override
@@ -301,13 +260,54 @@ public class Ex2Sheet implements Sheet {
     }
 
     @Override
-    public void load(String fileName) throws IOException {
-        // Placeholder for load logic
+    public void save(String fileName) throws IOException {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
+            writer.write(width() + "," + height() + "\n");
+
+            for (int i = 0; i < width(); i++) {
+                for (int j = 0; j < height(); j++) {
+                    Cell cell = table[i][j];
+                    String cellData = cell.getData();
+                    if (cellData == null || cellData.trim().isEmpty()) {
+                        cellData = "EMPTY";
+                    }
+                    cellData = cellData.replace(",", "\\,").replace("\n", "\\n");
+                    writer.write(cellData);
+
+                    if (j < height() - 1) {
+                        writer.write(",");
+                    }
+                }
+                writer.write("\n");
+            }
+        }
     }
 
     @Override
-    public void save(String fileName) throws IOException {
-        // Placeholder for save logic
+    public void load(String fileName) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+            String[] dimensions = reader.readLine().split(",");
+            int width = Integer.parseInt(dimensions[0]);
+            int height = Integer.parseInt(dimensions[1]);
+
+            table = new SCell[width][height];
+
+            for (int i = 0; i < width; i++) {
+                String[] row = reader.readLine().split("(?<!\\\\),");
+                for (int j = 0; j < height; j++) {
+                    String cellData = row[j]
+                            .replace("\\,", ",")
+                            .replace("\\n", "\n");
+
+                    if (cellData.equals("EMPTY")) {
+                        cellData = "";
+                    }
+
+                    table[i][j] = new SCell(cellData, this);
+                }
+            }
+            eval();
+        }
     }
 
     private int[] parseCoordinates(String cords) {
