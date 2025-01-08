@@ -41,16 +41,6 @@ public class Ex2Sheet implements Sheet {
     }
 
     /**
-     * Generates a cell name from its coordinates (e.g., "A0")
-     * @param col Column index
-     * @param row Row index
-     * @return Cell name in spreadsheet notation
-     */
-    private String getCellName(int col, int row) {
-        return String.valueOf((char)('A' + col)) + row;
-    }
-
-    /**
      * Gets the evaluated value of a cell at specified coordinates
      */
     @Override

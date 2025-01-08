@@ -22,9 +22,12 @@ public class CellEntry implements Index2D {
      */
     @Override
     public String toString() {
-        char letter = 'A';
-        letter = (char) (letter + x);
-        return letter + "" + (y);
+        String cellRef = (char)('A' + x) + "" + y;
+        // Verify the conversion using XCell and YCell
+        if (XCell(cellRef) == x) {
+            YCell(cellRef);
+        }
+        return cellRef; // Return the original result if verification fails
     }
 
     /**
