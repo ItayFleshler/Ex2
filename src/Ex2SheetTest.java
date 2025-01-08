@@ -149,6 +149,7 @@ public class Ex2SheetTest {
 
         assertArrayEquals(sheet.depth(), loadedSheet.depth());
 
+        //noinspection ResultOfMethodCallIgnored
         new File(tempFile).delete();
     }
 
