@@ -2,15 +2,36 @@ import java.io.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Implements a spreadsheet with support for text, numbers, and formulas.
+ * Provides functionality for cell evaluation, depth calculation, and file I/O.
+ */
 public class Ex2Sheet implements Sheet {
     private Cell[][] table;
 
+    /**
+     * Creates a new spreadsheet with specified dimensions
+     * @param x Width of the spreadsheet
+     * @param y Height of the spreadsheet
+     */
     public Ex2Sheet(int x, int y) {
         table = new SCell[x][y];
         initializeTable(x, y);
         eval();
     }
 
+    /**
+     * Creates a new spreadsheet with default dimensions
+     */
+    public Ex2Sheet() {
+        this(Ex2Utils.WIDTH, Ex2Utils.HEIGHT);
+    }
+
+    /**
+     * Initializes the spreadsheet with empty cells
+     * @param x Width of the spreadsheet
+     * @param y Height of the spreadsheet
+     */
     private void initializeTable(int x, int y) {
         for (int i = 0; i < x; i++) {
             for (int j = 0; j < y; j++) {
@@ -19,14 +40,19 @@ public class Ex2Sheet implements Sheet {
         }
     }
 
+    /**
+     * Generates a cell name from its coordinates (e.g., "A0")
+     * @param col Column index
+     * @param row Row index
+     * @return Cell name in spreadsheet notation
+     */
     private String getCellName(int col, int row) {
         return String.valueOf((char)('A' + col)) + row;
     }
 
-    public Ex2Sheet() {
-        this(Ex2Utils.WIDTH, Ex2Utils.HEIGHT);
-    }
-
+    /**
+     * Gets the evaluated value of a cell at specified coordinates
+     */
     @Override
     public String value(int x, int y) {
         if (!isIn(x, y)) {
@@ -34,8 +60,7 @@ public class Ex2Sheet implements Sheet {
         }
 
         Cell cell = table[x][y];
-        if (cell instanceof SCell) {
-            SCell sCell = (SCell) cell;
+        if (cell instanceof SCell sCell) {
             String evaluatedValue = sCell.getEvaluatedValue();
             if (evaluatedValue != null) {
                 return evaluatedValue;
@@ -74,6 +99,9 @@ public class Ex2Sheet implements Sheet {
         return table[0].length;
     }
 
+    /**
+     * Sets the value of a cell at specified coordinates
+     */
     @Override
     public void set(int col, int row, String val) {
         if (!isIn(col, row)) return;
@@ -86,6 +114,9 @@ public class Ex2Sheet implements Sheet {
         table[col][row] = new SCell(val, this, getCellName(col, row));
     }
 
+    /**
+     * Evaluates all cells in the spreadsheet based on their dependencies
+     */
     @Override
     public void eval() {
         int[][] depths = depth();
@@ -111,6 +142,9 @@ public class Ex2Sheet implements Sheet {
         }
     }
 
+    /**
+     * Finds the maximum depth in the dependency tree
+     */
     private int getMaxDepth(int[][] depths) {
         int maxDepth = 0;
         for (int[] row : depths) {
@@ -123,13 +157,15 @@ public class Ex2Sheet implements Sheet {
         return maxDepth;
     }
 
+    /**
+     * Evaluates a single cell at specified coordinates
+     */
     private void evaluateCell(int x, int y) {
         if (!isIn(x, y)) return;
 
         Cell cell = table[x][y];
-        if (!(cell instanceof SCell)) return;
+        if (!(cell instanceof SCell sCell)) return;
 
-        SCell sCell = (SCell) cell;
         String data = sCell.getData();
 
         // Empty cell
@@ -164,11 +200,17 @@ public class Ex2Sheet implements Sheet {
         sCell.setEvaluatedValue(data);
     }
 
+    /**
+     * Checks if coordinates are within spreadsheet bounds
+     */
     @Override
     public boolean isIn(int xx, int yy) {
         return xx >= 0 && yy >= 0 && xx < width() && yy < height();
     }
 
+    /**
+     * Calculates dependency depths for all cells
+     */
     @Override
     public int[][] depth() {
         int[][] depths = new int[width()][height()];
@@ -185,7 +227,7 @@ public class Ex2Sheet implements Sheet {
         for (int i = 0; i < width(); i++) {
             for (int j = 0; j < height(); j++) {
                 if (table[i][j] != null) {
-                    depths[i][j] = calculateCellDepth(i, j, visited, depths);
+                    depths[i][j] = calculateCellDepth(i, j, visited);
                 }
             }
         }
@@ -193,7 +235,10 @@ public class Ex2Sheet implements Sheet {
         return depths;
     }
 
-    private int calculateCellDepth(int row, int col, boolean[][] visited, int[][] depths) {
+    /**
+     * Calculates the dependency depth of a single cell
+     */
+    private int calculateCellDepth(int row, int col, boolean[][] visited) {
         if (!isIn(row, col) || table[row][col] == null) {
             return -1;
         }
@@ -225,7 +270,7 @@ public class Ex2Sheet implements Sheet {
                 int nextRow = Integer.parseInt(ref.substring(1));
 
                 if (isIn(nextCol, nextRow)) {
-                    int d = calculateCellDepth(nextCol, nextRow, visited, depths);
+                    int d = calculateCellDepth(nextCol, nextRow, visited);
                     if (d == -1) {
                         return -1;
                     }
@@ -239,6 +284,9 @@ public class Ex2Sheet implements Sheet {
         }
     }
 
+    /**
+     * Evaluates a specific cell and returns its value
+     */
     @Override
     public String eval(int x, int y) {
         if (!isIn(x, y)) {
@@ -259,6 +307,9 @@ public class Ex2Sheet implements Sheet {
         return null;
     }
 
+    /**
+     * Saves the spreadsheet to a file
+     */
     @Override
     public void save(String fileName) throws IOException {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
@@ -283,6 +334,9 @@ public class Ex2Sheet implements Sheet {
         }
     }
 
+    /**
+     * Loads the spreadsheet from a file
+     */
     @Override
     public void load(String fileName) throws IOException {
         try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
@@ -310,6 +364,9 @@ public class Ex2Sheet implements Sheet {
         }
     }
 
+    /**
+     * Parses cell coordinates from string format (e.g., "A0")
+     */
     private int[] parseCoordinates(String cords) {
         if (cords == null || cords.trim().isEmpty()) {
             throw new IllegalArgumentException("Invalid coordinates: empty input");

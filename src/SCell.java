@@ -1,13 +1,23 @@
+/**
+ * Represents a cell in a spreadsheet that can contain numbers, text, or formulas.
+ * Implements the Cell interface to provide basic cell functionality.
+ */
 public class SCell implements Cell {
     private String line;
     private int type;
     private String evaluatedValue;
-    private Ex2Sheet sheet;
-    private String cellName;  // הוספת שדה לשם התא
+    private final Ex2Sheet sheet;
+    private final String cellName;
 
+    /**
+     * Creates a new cell with initial value, parent sheet and cell name.
+     * @param s Initial cell content
+     * @param sheet Parent spreadsheet
+     * @param cellName The cell's reference name (e.g., "A0")
+     */
     public SCell(String s, Ex2Sheet sheet, String cellName) {
         this.sheet = sheet;
-        this.cellName = cellName;  // שמירת שם התא
+        this.cellName = cellName;
         setData(s);
         setType(Ex2Utils.TEXT);
     }
@@ -41,18 +51,26 @@ public class SCell implements Cell {
     public void setOrder(int t) {
     }
 
+    /**
+     * Sets the evaluated value of the cell after formula computation
+     * @param value The computed value to set
+     */
     public void setEvaluatedValue(String value) {
         this.evaluatedValue = value;
     }
 
+    /**
+     * Gets the cell's evaluated value after formula computation
+     * @return The evaluated value of the cell
+     */
     public String getEvaluatedValue() {
         return evaluatedValue;
     }
 
-    public String getCellName() {
-        return cellName;
-    }
-
+    /**
+     * Checks if the cell's content represents a valid number
+     * @return true if the cell contains a valid number, false otherwise
+     */
     public boolean isNumber() {
         String data = getData();
         if (data == null || data.isEmpty()) {
@@ -65,19 +83,30 @@ public class SCell implements Cell {
             return false;
         }
     }
+    /**
+     * Checks if the cell contains a formula (starts with '=')
+     * @return true if the cell contains a formula, false otherwise
+     */
 
     public boolean isForm() {
         String data = getData();
-        if (data == null || !data.startsWith("=")) {
-            return false;
-        }
-        return true;
+        return data != null && data.startsWith("=");
     }
+    /**
+     * Validates if a character is a valid mathematical operator
+     * @param c Character to check
+     * @return true if the character is a valid operator, false otherwise
+     */
 
     private boolean isValidOperator(char c) {
         return c == '+' || c == '-' || c == '*' || c == '/';
     }
 
+    /**
+     * Checks for balanced parentheses in a formula string
+     * @param str The string to check
+     * @return true if parentheses are balanced, false otherwise
+     */
     private boolean isBalancedParentheses(String str) {
         int count = 0;
         for (char c : str.toCharArray()) {
@@ -88,36 +117,28 @@ public class SCell implements Cell {
         return count == 0;
     }
 
-    private int findMainOperator(String form) {
-        int parenthesesCount = 0;
-        int lastOperator = -1;
-
-        for (int i = 0; i < form.length(); i++) {
-            char c = form.charAt(i);
-            if (c == '(') {
-                parenthesesCount++;
-            } else if (c == ')') {
-                parenthesesCount--;
-            } else if (parenthesesCount == 0 && isValidOperator(c)) {
-                lastOperator = i;
-                if (c == '+' || c == '-') {
-                    return i;
-                }
-            }
-        }
-        return lastOperator;
-    }
-
+    /**
+     * Performs the specified mathematical operation
+     * @param left Left operand
+     * @param right Right operand
+     * @param operator Mathematical operator
+     * @return Result of the operation, or null if division by zero
+     */
     private Double performOperation(Double left, Double right, char operator) {
-        switch (operator) {
-            case '+': return left + right;
-            case '-': return left - right;
-            case '*': return left * right;
-            case '/': return right != 0 ? left / right : null;
-            default: return null;
-        }
+        return switch (operator) {
+            case '+' -> left + right;
+            case '-' -> left - right;
+            case '*' -> left * right;
+            case '/' -> right != 0 ? left / right : null;
+            default -> null;
+        };
     }
 
+    /**
+     * Computes the result of a formula
+     * @param form The formula to evaluate
+     * @return The computed result or null if invalid
+     */
     public Double computeForm(String form) {
         if (form == null || form.isEmpty()) {
             return null;
@@ -168,10 +189,9 @@ public class SCell implements Cell {
             else if (c == '(') parenthesesCount--;
             else if (parenthesesCount == 0 && (c == '+' || c == '-')) {
                 if (i > 0 && isValidOperator(form.charAt(i - 1))) {
-                    continue;  // מדלג על אופרטורים כפולים
+                    continue;
                 }
                 operatorIndex = i;
-                foundOperator = true;
                 break;
             } else if (parenthesesCount == 0 && !foundOperator && (c == '*' || c == '/')) {
                 operatorIndex = i;
@@ -212,10 +232,14 @@ public class SCell implements Cell {
         return performOperation(leftValue, rightValue, operator);
     }
 
+    /**
+     * Returns a string representation of the cell
+     * @return The cell's name or evaluated value
+     */
     @Override
     public String toString() {
         if (cellName != null && !cellName.isEmpty()) {
-            return cellName;  // מחזיר את שם התא
+            return cellName;
         }
 
         if (evaluatedValue != null) {
