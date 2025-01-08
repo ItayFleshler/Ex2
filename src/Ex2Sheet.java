@@ -239,49 +239,66 @@ public class Ex2Sheet implements Sheet {
      * Calculates the dependency depth of a single cell
      */
     private int calculateCellDepth(int row, int col, boolean[][] visited) {
+        // Check bounds and null
         if (!isIn(row, col) || table[row][col] == null) {
-            return -1;
+            return 0;  // Empty cells have depth 0
         }
 
+        // Check for circular dependency
         if (visited[row][col]) {
-            return -1;
+            return -1;  // Circular dependency detected
         }
 
         Cell cell = table[row][col];
-        if (!(cell instanceof SCell) || !((SCell) cell).isForm()) {
+        String data = cell.getData();
+
+        // If cell is empty or not a formula, depth is 0
+        if (data == null || data.trim().isEmpty() || !data.startsWith("=")) {
             return 0;
         }
 
-        String data = cell.getData();
-        if (data == null || data.trim().isEmpty()) {
-            return 0;
+        // Check if formula contains any cell references
+        Pattern pattern = Pattern.compile("[A-Z][0-9]+");
+        Matcher matcher = pattern.matcher(data);
+        if (!matcher.find()) {
+            return 0;  // Formula without cell references has depth 0
         }
+
+        // Reset matcher to start
+        matcher.reset();
 
         visited[row][col] = true;
-        int maxDepth = 0;
+        int maxDepth = -1;
 
-        try {
-            Pattern pattern = Pattern.compile("[A-Z][0-9]+");
-            Matcher matcher = pattern.matcher(data);
+        // Process all cell references in the formula
+        while (matcher.find()) {
+            String ref = matcher.group();
+            int nextCol = ref.charAt(0) - 'A';
+            int nextRow = Integer.parseInt(ref.substring(1));
 
-            while (matcher.find()) {
-                String ref = matcher.group();
-                int nextCol = ref.charAt(0) - 'A';
-                int nextRow = Integer.parseInt(ref.substring(1));
-
-                if (isIn(nextCol, nextRow)) {
-                    int d = calculateCellDepth(nextCol, nextRow, visited);
-                    if (d == -1) {
-                        return -1;
-                    }
-                    maxDepth = Math.max(maxDepth, d);
-                }
+            // Check if reference is valid
+            if (!isIn(nextCol, nextRow)) {
+                visited[row][col] = false;
+                return -1;  // Invalid reference
             }
 
-            return maxDepth + 1;
-        } finally {
-            visited[row][col] = false;
+            // Check if referenced cell is empty
+            Cell referencedCell = table[nextCol][nextRow];
+            if (referencedCell == null || referencedCell.getData() == null || referencedCell.getData().trim().isEmpty()) {
+                visited[row][col] = false;
+                return -1;  // Reference to empty cell
+            }
+
+            int depth = calculateCellDepth(nextCol, nextRow, visited);
+            if (depth == -1) {
+                visited[row][col] = false;
+                return -1;  // Propagate circular dependency
+            }
+            maxDepth = Math.max(maxDepth, depth);
         }
+
+        visited[row][col] = false;
+        return maxDepth + 1;
     }
 
     /**
