@@ -176,11 +176,21 @@ public class Ex2Sheet implements Sheet {
 
         // Formula
         if (data.startsWith("=")) {
+            // בדיקת תלות מעגלית
+            int depth = calculateCellDepth(x, y, new boolean[width()][height()]);
+            if (depth == Ex2Utils.ERR_CYCLE_FORM) {
+                sCell.setType(Ex2Utils.ERR_CYCLE_FORM);  // עדכון הטיפוס
+                sCell.setEvaluatedValue(Ex2Utils.ERR_CYCLE);
+                return;
+            }
+
             Double result = sCell.computeForm(data);
             if (result != null) {
+                sCell.setType(Ex2Utils.FORM);  // נוסחה תקינה
                 sCell.setEvaluatedValue(String.format("%.1f", result));
             } else {
-                sCell.setEvaluatedValue("Error");
+                sCell.setType(Ex2Utils.ERR_FORM_FORMAT);  // שגיאת פורמט
+                sCell.setEvaluatedValue(Ex2Utils.ERR_FORM);
             }
             return;
         }
@@ -189,14 +199,17 @@ public class Ex2Sheet implements Sheet {
         if (sCell.isNumber()) {
             try {
                 double val = Double.parseDouble(data);
+                sCell.setType(Ex2Utils.NUMBER);
                 sCell.setEvaluatedValue(String.format("%.1f", val));
             } catch (NumberFormatException e) {
+                sCell.setType(Ex2Utils.TEXT);
                 sCell.setEvaluatedValue(data);
             }
             return;
         }
 
         // Text
+        sCell.setType(Ex2Utils.TEXT);
         sCell.setEvaluatedValue(data);
     }
 
@@ -239,60 +252,45 @@ public class Ex2Sheet implements Sheet {
      * Calculates the dependency depth of a single cell
      */
     private int calculateCellDepth(int row, int col, boolean[][] visited) {
-        // Check bounds and null
         if (!isIn(row, col) || table[row][col] == null) {
-            return 0;  // Empty cells have depth 0
+            return 0;
         }
 
-        // Check for circular dependency
         if (visited[row][col]) {
-            return -1;  // Circular dependency detected
+            return Ex2Utils.ERR_CYCLE_FORM;  // שימוש בקבוע המתאים
         }
 
         Cell cell = table[row][col];
         String data = cell.getData();
 
-        // If cell is empty or not a formula, depth is 0
         if (data == null || data.trim().isEmpty() || !data.startsWith("=")) {
             return 0;
         }
 
-        // Check if formula contains any cell references
         Pattern pattern = Pattern.compile("[A-Z][0-9]+");
         Matcher matcher = pattern.matcher(data);
         if (!matcher.find()) {
-            return 0;  // Formula without cell references has depth 0
+            return 0;
         }
 
-        // Reset matcher to start
         matcher.reset();
-
         visited[row][col] = true;
-        int maxDepth = -1;
+        int maxDepth = 0;
 
-        // Process all cell references in the formula
         while (matcher.find()) {
             String ref = matcher.group();
             int nextCol = ref.charAt(0) - 'A';
             int nextRow = Integer.parseInt(ref.substring(1));
 
-            // Check if reference is valid
             if (!isIn(nextCol, nextRow)) {
                 visited[row][col] = false;
-                return -1;  // Invalid reference
-            }
-
-            // Check if referenced cell is empty
-            Cell referencedCell = table[nextCol][nextRow];
-            if (referencedCell == null || referencedCell.getData() == null || referencedCell.getData().trim().isEmpty()) {
-                visited[row][col] = false;
-                return -1;  // Reference to empty cell
+                return Ex2Utils.ERR_CYCLE_FORM;
             }
 
             int depth = calculateCellDepth(nextCol, nextRow, visited);
-            if (depth == -1) {
+            if (depth == Ex2Utils.ERR_CYCLE_FORM) {
                 visited[row][col] = false;
-                return -1;  // Propagate circular dependency
+                return Ex2Utils.ERR_CYCLE_FORM;
             }
             maxDepth = Math.max(maxDepth, depth);
         }

@@ -55,8 +55,8 @@ public class Ex2SheetTest {
         assertEquals("@2", sheet.value(2, 0));
         assertEquals("2+)", sheet.value(3, 0));
         assertEquals("(3+1*2)-", sheet.value(4, 0));
-        assertEquals("Error", sheet.value(5, 0));
-        assertEquals("Error", sheet.value(6, 0));
+        assertEquals("ERR_FORM!", sheet.value(5, 0));
+        assertEquals("ERR_FORM!", sheet.value(6, 0));
     }
 
     @Test
@@ -114,8 +114,8 @@ public class Ex2SheetTest {
         sheet.set(1, 0, "=10/(5-5)");  // B0
         sheet.eval();
 
-        assertEquals("Error", sheet.value(0, 0));
-        assertEquals("Error", sheet.value(1, 0));
+        assertEquals("ERR_FORM!", sheet.value(0, 0));
+        assertEquals("ERR_FORM!", sheet.value(1, 0));
     }
 
     @Test
@@ -219,5 +219,77 @@ public class Ex2SheetTest {
         assertEquals("1.0", sheet.value(0, 0));
         assertEquals("5.0", sheet.value(1, 0));
         assertEquals("6.0", sheet.value(2, 0));
+    }
+
+    @Test
+    public void testSimpleCircularDependency() {
+        Ex2Sheet sheet = new Ex2Sheet(3, 3);
+        sheet.set(0, 0, "=B0");      // A0 depends on B0
+        sheet.set(1, 0, "=A0");      // B0 depends on A0
+
+        sheet.eval();
+        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(0, 0));
+        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(1, 0));
+    }
+
+    @Test
+    public void testComplexCircularDependency() {
+        Ex2Sheet sheet = new Ex2Sheet(4, 4);
+        sheet.set(0, 0, "=B0");      // A0 -> B0
+        sheet.set(1, 0, "=C0");      // B0 -> C0
+        sheet.set(2, 0, "=D0");      // C0 -> D0
+        sheet.set(3, 0, "=A0");      // D0 -> A0 (creates cycle)
+
+        sheet.eval();
+        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(0, 0));
+        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(1, 0));
+        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(2, 0));
+        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(3, 0));
+    }
+
+    @Test
+    public void testSelfCircularDependency() {
+        Ex2Sheet sheet = new Ex2Sheet(3, 3);
+        sheet.set(0, 0, "=A0");      // Cell depends on itself
+
+        sheet.eval();
+        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(0, 0));
+    }
+
+    @Test
+    public void testCircularDependencyWithCalculations() {
+        Ex2Sheet sheet = new Ex2Sheet(3, 3);
+        sheet.set(0, 0, "=B0+1");    // A0 depends on B0
+        sheet.set(1, 0, "=A0*2");    // B0 depends on A0
+
+        sheet.eval();
+        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(0, 0));
+        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(1, 0));
+    }
+
+    @Test
+    public void testCircularDependencyInLargerFormula() {
+        Ex2Sheet sheet = new Ex2Sheet(3, 3);
+        sheet.set(0, 0, "=5+B0*2");  // A0 depends on B0
+        sheet.set(1, 0, "=A0/2");    // B0 depends on A0
+
+        sheet.eval();
+        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(0, 0));
+        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(1, 0));
+    }
+
+    @Test
+    public void testPartialCircularDependency() {
+        Ex2Sheet sheet = new Ex2Sheet(4, 4);
+        sheet.set(0, 0, "=B0");      // A0 -> B0
+        sheet.set(1, 0, "=C0");      // B0 -> C0
+        sheet.set(2, 0, "=A0");      // C0 -> A0 (creates cycle)
+        sheet.set(3, 0, "=A0+1");    // D0 depends on cell in cycle
+
+        sheet.eval();
+        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(0, 0));
+        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(1, 0));
+        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(2, 0));
+        assertEquals("ERR_CYCLE!", Ex2Utils.ERR_CYCLE, sheet.value(3, 0));
     }
 }

@@ -241,7 +241,7 @@ public class SCell implements Cell {
                 }
                 return String.format("%.1f", result);
             }
-            return "Error";
+            return evaluatedValue;
         }
 
         if (isNumber()) {
@@ -262,8 +262,23 @@ public class SCell implements Cell {
     @Override
     public void setData(String s) {
         line = s;
-    }
 
+        // קביעת הטיפוס המתאים
+        if (s == null || s.trim().isEmpty()) {
+            setType(Ex2Utils.TEXT);
+        }
+        else if (s.startsWith("=")) {
+            setType(Ex2Utils.FORM);
+        }
+        else {
+            try {
+                Double.parseDouble(s);
+                setType(Ex2Utils.NUMBER);
+            } catch (NumberFormatException e) {
+                setType(Ex2Utils.TEXT);
+            }
+        }
+    }
     @Override
     public String getData() {
         return line;
