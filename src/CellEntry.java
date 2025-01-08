@@ -6,7 +6,8 @@
  * @since 2025-01-08
  */
 public class CellEntry implements Index2D {
-    private int x, y;
+    private final int x;
+    private final int y;
 
     /**
      * Creates a new cell entry with given coordinates
@@ -60,7 +61,7 @@ public class CellEntry implements Index2D {
      * @return Row index (0-99) or -1 if invalid
      */
     public int YCell(String c) {
-        if (c == null || c.isEmpty() || c.length() < 2) {
+        if (c == null || c.length() < 2) {
             return -1;
         }
 
