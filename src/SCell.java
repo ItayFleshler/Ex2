@@ -59,7 +59,12 @@ public class SCell implements Cell {
      * @return true if the character is a valid operator, false otherwise
      */
     private boolean isValidOperator(char c) {
-        return c == '+' || c == '-' || c == '*' || c == '/';
+        for (String op : Ex2Utils.M_OPS) {
+            if (op.charAt(0) == c) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -89,7 +94,7 @@ public class SCell implements Cell {
             case '+' -> left + right;
             case '-' -> left - right;
             case '*' -> left * right;
-            case '/' -> right != 0 ? left / right : null;  // Handle division by zero
+            case '/' -> left / right;
             default -> null;
         };
     }
@@ -142,20 +147,17 @@ public class SCell implements Cell {
         }
 
         // Check for cell reference
-        if (form.matches("^[A-Za-z][0-9]+$") && !form.matches(".*\\d+[eE][-+]?\\d+")) {
-            try {
-                Double.parseDouble(form);
-                return Double.parseDouble(form);
-            } catch (NumberFormatException e) {
-                int col = Character.toUpperCase(form.charAt(0)) - 'A';
-                int row = Integer.parseInt(form.substring(1));
-                String cellValue = sheet.value(col, row);
+        if (form.matches("^[A-Za-z][0-9]+$")) {
+            CellEntry entry = CellEntry.parseEntry(form);
+            if (entry != null && entry.isValid()) {
+                String cellValue = sheet.value(entry.getX(), entry.getY());
                 try {
                     return Double.parseDouble(cellValue);
                 } catch (NumberFormatException ex) {
                     return null;
                 }
             }
+            return null;
         }
 
         // Parse the formula to find the main operator
@@ -167,13 +169,13 @@ public class SCell implements Cell {
             char c = form.charAt(i);
             if (c == ')') parenthesesCount++;
             else if (c == '(') parenthesesCount--;
-            else if (parenthesesCount == 0 && (c == '+' || c == '-')) {
+            else if (parenthesesCount == 0 && (c == Ex2Utils.M_OPS[0].charAt(0) || c == Ex2Utils.M_OPS[1].charAt(0))) {
                 if (i > 0 && isValidOperator(form.charAt(i - 1))) {
                     continue;
                 }
                 operatorIndex = i;  // Found main operator
                 break;
-            } else if (parenthesesCount == 0 && !foundOperator && (c == '*' || c == '/')) {
+            } else if (parenthesesCount == 0 && !foundOperator && (c == Ex2Utils.M_OPS[2].charAt(0) || c == Ex2Utils.M_OPS[3].charAt(0))) {
                 operatorIndex = i;  // Found multiplication/division operator
             }
         }
@@ -223,8 +225,11 @@ public class SCell implements Cell {
         if (evaluatedValue != null) {
             try {
                 double val = Double.parseDouble(evaluatedValue);
+                if (Double.isInfinite(val)) {
+                    return evaluatedValue; // Return Infinity/-Infinity as is
+                }
                 if (Math.abs(val) >= 1e6 || (Math.abs(val) < 1e-6 && val != 0)) {
-                    return String.format("%.1e", val);  // Scientific notation for large/small numbers
+                    return String.format("%.1e", val);
                 }
                 return String.format("%.1f", val);
             } catch (NumberFormatException e) {
@@ -240,8 +245,11 @@ public class SCell implements Cell {
         if (isForm()) {
             Double result = computeForm(data);
             if (result != null) {
+                if (Double.isInfinite(result)) {
+                    return result.toString(); // Return Infinity/-Infinity as is
+                }
                 if (Math.abs(result) >= 1e6 || (Math.abs(result) < 1e-6 && result != 0)) {
-                    return String.format("%.1e", result);  // Scientific notation for large/small numbers
+                    return String.format("%.1e", result);
                 }
                 return String.format("%.1f", result);
             }
@@ -251,8 +259,11 @@ public class SCell implements Cell {
         if (isNumber()) {
             try {
                 double val = Double.parseDouble(data);
+                if (Double.isInfinite(val)) {
+                    return data; // Return Infinity/-Infinity as is
+                }
                 if (Math.abs(val) >= 1e6 || (Math.abs(val) < 1e-6 && val != 0)) {
-                    return String.format("%.1e", val);  // Scientific notation for large/small numbers
+                    return String.format("%.1e", val);
                 }
                 return String.format("%.1f", val);
             } catch (NumberFormatException e) {

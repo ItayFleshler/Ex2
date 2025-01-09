@@ -71,13 +71,10 @@ public class Ex2Sheet implements Sheet {
 
     @Override
     public Cell get(String cords) {
-        try {
-            int[] xy = parseCoordinates(cords);
-            return get(xy[0], xy[1]);
-        } catch (Exception e) {
-            return null;
-        }
+        CellEntry entry = CellEntry.parseEntry(cords);
+        return (entry != null && entry.isValid()) ? get(entry.getX(), entry.getY()) : null;
     }
+
 
     @Override
     public int width() {
@@ -273,14 +270,16 @@ public class Ex2Sheet implements Sheet {
         tempVisited[row][col] = true;
 
         while (matcher.find()) {
-            // Extract referenced cell coordinates
             String ref = matcher.group();
-            int nextCol = Character.toUpperCase(ref.charAt(0)) - 'A';
-            int nextRow = Integer.parseInt(ref.substring(1));
+            CellEntry entry = CellEntry.parseEntry(ref);
 
-            if (!isIn(nextCol, nextRow)) {
+            // If invalid reference, return error
+            if (entry == null || !entry.isValid()) {
                 return Ex2Utils.ERR_CYCLE_FORM;
             }
+
+            int nextCol = entry.getX();
+            int nextRow = entry.getY();
 
             Cell dependentCell = table[nextCol][nextRow];
             if (dependentCell == null || dependentCell.getData() == null || dependentCell.getData().trim().isEmpty()) {
@@ -386,29 +385,5 @@ public class Ex2Sheet implements Sheet {
             }
             eval();
         }
-    }
-
-    /**
-     * Parses cell coordinates from string format (e.g., "A0")
-     */
-    private int[] parseCoordinates(String cords) {
-        if (cords == null || cords.trim().isEmpty()) {
-            throw new IllegalArgumentException("Invalid coordinates: empty input");
-        }
-
-        cords = cords.trim();  // Remove toUpperCase() to accept lowercase
-        if (!cords.matches("[A-Za-z][0-9]+")) {  // Modified regex to accept both cases
-            throw new IllegalArgumentException("Invalid coordinates format: " + cords);
-        }
-
-        // Convert to uppercase for calculation regardless of input case
-        int col = Character.toUpperCase(cords.charAt(0)) - 'A';
-        int row = Integer.parseInt(cords.substring(1));
-
-        if (!isIn(col, row)) {
-            throw new IllegalArgumentException("Invalid coordinates: " + cords);
-        }
-
-        return new int[] { col, row };
     }
 }

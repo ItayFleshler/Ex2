@@ -1,13 +1,14 @@
 /**
- * Represents a cell's coordinates and provides conversion between
- * spreadsheet notation (e.g., "A0") and array indices.
+ * Represents a cell's coordinates in a spreadsheet (e.g., "A0", "B1", etc.)
  */
 public class CellEntry implements Index2D {
+    private static final int MAX_COLUMN = 26;
+    private static final int MAX_ROW = 100;
     private final int x;
     private final int y;
 
     /**
-     * Creates a new cell entry with given coordinates
+     * Creates a cell entry with given coordinates
      * @param x Column index (0-25 for A-Z)
      * @param y Row index (0-99)
      */
@@ -17,21 +18,25 @@ public class CellEntry implements Index2D {
     }
 
     /**
-     * Converts cell coordinates to spreadsheet notation
-     * @return String representation of the cell (e.g., "A0")
+     * Gets column index
+     * @return Column index (0-25)
      */
     @Override
-    public String toString() {
-        String cellRef = (char)('A' + x) + "" + y;
-        // Verify the conversion using XCell and YCell
-        if (XCell(cellRef) == x) {
-            YCell(cellRef);
-        }
-        return cellRef; // Return the original result if verification fails
+    public int getX() {
+        return x;
     }
 
     /**
-     * Checks if the coordinates are within valid range
+     * Gets row index
+     * @return Row index (0-99)
+     */
+    @Override
+    public int getY() {
+        return y;
+    }
+
+    /**
+     * Checks if coordinates are within valid range
      * @return true if coordinates are valid (A-Z for columns, 0-99 for rows)
      */
     @Override
@@ -41,15 +46,15 @@ public class CellEntry implements Index2D {
 
     /**
      * Extracts column index from cell reference
-     * @param c Cell reference string (e.g., "A0")
+     * @param c Cell reference string (e.g., "F13")
      * @return Column index (0-25) or -1 if invalid
      */
-    public int XCell(String c) {
+    public static int xCell(String c) {
         if (c == null || c.isEmpty()) {
             return -1;
         }
-        char firstChar = c.charAt(0);
-        if (firstChar >= 'A' && firstChar <= 'Z' ) {
+        char firstChar = Character.toUpperCase(c.charAt(0));
+        if (firstChar >= 'A' && firstChar <= 'Z') {
             return firstChar - 'A';
         }
         return -1;
@@ -57,41 +62,37 @@ public class CellEntry implements Index2D {
 
     /**
      * Extracts row index from cell reference
-     * @param c Cell reference string (e.g., "A0")
+     * @param c Cell reference string (e.g., "F13")
      * @return Row index (0-99) or -1 if invalid
      */
-    public int YCell(String c) {
+    public static int yCell(String c) {
         if (c == null || c.length() < 2) {
             return -1;
         }
-
-        String numberPart = c.substring(1);
         try {
-            int number = Integer.parseInt(numberPart);
-            if (number >= 0 && number < 100) {
-                return number;
-            }
+            int row = Integer.parseInt(c.substring(1));
+            return (row >= 0 && row < 100) ? row : -1;
         } catch (NumberFormatException e) {
             return -1;
         }
-        return -1;
     }
 
     /**
-     * Gets the column index
-     * @return Column index (0-25)
+     * Creates a CellEntry from a cell reference string
+     * @param cellRef Cell reference (e.g., "A0", "F13")
+     * @return New CellEntry object or null if invalid
      */
-    @Override
-    public int getX() {
-        return x;
+    public static CellEntry parseEntry(String cellRef) {
+        int x = xCell(cellRef);
+        int y = yCell(cellRef);
+        if (x != -1 && y != -1) {
+            return new CellEntry(x, y);
+        }
+        return null;
     }
 
-    /**
-     * Gets the row index
-     * @return Row index (0-99)
-     */
     @Override
-    public int getY() {
-        return y;
+    public String toString() {
+        return String.format("%c%d", (char)('A' + x), y);
     }
 }

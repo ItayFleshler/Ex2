@@ -2,7 +2,6 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 
 public class Ex2SheetTest {
 
@@ -111,12 +110,16 @@ public class Ex2SheetTest {
     @Test
     void testDivisionByZero() {
         Sheet sheet = new Ex2Sheet();
-        sheet.set(0, 0, "=1/0");       // A0
-        sheet.set(1, 0, "=10/(5-5)");  // B0
+        sheet.set(0, 0, "=1/0");       // A0 should return Infinity
+        sheet.set(1, 0, "=10/(5-5)");  // B0 should return Infinity
+        sheet.set(2, 0, "=-1/0");      // C0 should return -Infinity
+        sheet.set(3, 0, "=-10/(5-5)"); // D0 should return -Infinity
         sheet.eval();
 
-        assertEquals("ERR_FORM!", sheet.value(0, 0));
-        assertEquals("ERR_FORM!", sheet.value(1, 0));
+        assertEquals("Infinity", sheet.value(0, 0));
+        assertEquals("Infinity", sheet.value(1, 0));
+        assertEquals("-Infinity", sheet.value(2, 0));
+        assertEquals("-Infinity", sheet.value(3, 0));
     }
 
     @Test
@@ -224,7 +227,7 @@ public class Ex2SheetTest {
 
     @Test
     public void testSimpleCircularDependency() {
-        Ex2Sheet sheet = new Ex2Sheet(3, 3);
+        Ex2Sheet sheet = new Ex2Sheet();
         sheet.set(0, 0, "=B0");      // A0 depends on B0
         sheet.set(1, 0, "=A0");      // B0 depends on A0
 
@@ -235,7 +238,7 @@ public class Ex2SheetTest {
 
     @Test
     public void testComplexCircularDependency() {
-        Ex2Sheet sheet = new Ex2Sheet(4, 4);
+        Ex2Sheet sheet = new Ex2Sheet();
         sheet.set(0, 0, "=B0");      // A0 -> B0
         sheet.set(1, 0, "=C0");      // B0 -> C0
         sheet.set(2, 0, "=D0");      // C0 -> D0
@@ -250,7 +253,7 @@ public class Ex2SheetTest {
 
     @Test
     public void testSelfCircularDependency() {
-        Ex2Sheet sheet = new Ex2Sheet(3, 3);
+        Ex2Sheet sheet = new Ex2Sheet();
         sheet.set(0, 0, "=A0");      // Cell depends on itself
 
         sheet.eval();
@@ -259,7 +262,7 @@ public class Ex2SheetTest {
 
     @Test
     public void testCircularDependencyWithCalculations() {
-        Ex2Sheet sheet = new Ex2Sheet(3, 3);
+        Ex2Sheet sheet = new Ex2Sheet();
         sheet.set(0, 0, "=B0+1");    // A0 depends on B0
         sheet.set(1, 0, "=A0*2");    // B0 depends on A0
 
@@ -270,7 +273,7 @@ public class Ex2SheetTest {
 
     @Test
     public void testCircularDependencyInLargerFormula() {
-        Ex2Sheet sheet = new Ex2Sheet(3, 3);
+        Ex2Sheet sheet = new Ex2Sheet();
         sheet.set(0, 0, "=5+B0*2");  // A0 depends on B0
         sheet.set(1, 0, "=A0/2");    // B0 depends on A0
 
@@ -281,7 +284,7 @@ public class Ex2SheetTest {
 
     @Test
     public void testPartialCircularDependency() {
-        Ex2Sheet sheet = new Ex2Sheet(4, 4);
+        Ex2Sheet sheet = new Ex2Sheet();
         sheet.set(0, 0, "=B0");      // A0 -> B0
         sheet.set(1, 0, "=C0");      // B0 -> C0
         sheet.set(2, 0, "=A0");      // C0 -> A0 (creates cycle)
@@ -294,15 +297,9 @@ public class Ex2SheetTest {
         assertEquals("ERR_CYCLE!", sheet.value(3, 0));
     }
 
-    private void verifyArrayEquality(String message, int[][] expected, int[][] actual) {
-        if (!Arrays.deepEquals(expected, actual)) {
-            throw new AssertionError(message + "\nExpected: " + Arrays.deepToString(expected) + "\nActual: " + Arrays.deepToString(actual));
-        }
-    }
-
     @Test
     public void testEmptyCellDependency() {
-        Ex2Sheet sheet = new Ex2Sheet(3, 3);
+        Ex2Sheet sheet = new Ex2Sheet();
         sheet.set(0, 0, "=B0+1");    // A0 depends on B0 (empty)
 
         int[][] result = sheet.depth();
@@ -313,7 +310,7 @@ public class Ex2SheetTest {
 
     @Test
     public void testLongDependencyChain() {
-        Ex2Sheet sheet = new Ex2Sheet(5, 5);
+        Ex2Sheet sheet = new Ex2Sheet();
         sheet.set(0, 0, "1");        // A0
         sheet.set(1, 0, "=A0+1");    // B0
         sheet.set(2, 0, "=B0+2");    // C0
@@ -331,7 +328,7 @@ public class Ex2SheetTest {
 
     @Test
     public void testBlankSheetDepth() {
-        Ex2Sheet sheet = new Ex2Sheet(3, 3);
+        Ex2Sheet sheet = new Ex2Sheet();
         int[][] result = sheet.depth();
 
         assertEquals(0, result[0][0]);
@@ -341,7 +338,7 @@ public class Ex2SheetTest {
 
     @Test
     public void testMixedFormulaTypes() {
-        Ex2Sheet sheet = new Ex2Sheet(3, 3);
+        Ex2Sheet sheet = new Ex2Sheet();
         sheet.set(0, 0, "10");
         sheet.set(0, 1, "=A0+5");
         sheet.set(1, 0, "=10+20");
@@ -357,7 +354,7 @@ public class Ex2SheetTest {
 
     @Test
     public void testConstantFormula() {
-        Ex2Sheet sheet = new Ex2Sheet(3, 3);
+        Ex2Sheet sheet = new Ex2Sheet();
         sheet.set(0, 0, "5");
         sheet.set(0, 1, "=5*2");
 
