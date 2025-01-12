@@ -1,147 +1,113 @@
-# Spreadsheet Project
+# Ex2 - Foundation of Object-Oriented and Recursion
 
-### Ex2 - Foundation of Object-Oriented and Recursion
+## Overview
 
-## Introduction
-This assignment focuses on designing and implementing a basic version of a spreadsheet. The spreadsheet is a 2D array of cells, each of which can be a string (text), a number (double), or a formula. The main goal here is to understand and implement the foundation of object-oriented design and recursion.
+The `Ex2Sheet` class is a comprehensive implementation of a spreadsheet system supporting text, numbers, and formulas. It includes advanced features such as formula parsing, cell dependency management, cycle detection, and file I/O operations. This document provides a detailed overview of the project's structure, functionality, and testing strategy.
 
 ## Image of the spreadsheet after all the implementations
-<img src="/images/spreadsheet_screenshot.png" alt="Ex2 Spreadsheet Screenshot" width="600"/>
+![11BB9918-5B1F-43F4-83E6-F724E9FCEECB](https://github.com/user-attachments/assets/01414424-b9ef-4008-b2a0-a606068922ae)
 
-## Assignment Overview
-### Valid Formulas:
-- `=number` (e.g., `=1`, `=1.2`)
-- `=(Formula)` (e.g., `=(0.2)`)
-- `=Formula op Formula` (op is one of {`+`, `-`, `*`, `/`} e.g., `=1+2`, `=1+2*3`, `=(1+2)*((3))-1`)
-- `=cell` (e.g., `=A1`, `=A2+3`, `=(2+A3)/A2`)
+---
 
-### Invalid Formulas:
-- `a`, `AB`, `@2`, `2+)`, `(3+1*2)-`, `=()`, `=5**`
+## Formula Parsing and Evaluation
 
-### Error Types:
-- **ERR_WRONG_FORM**: Incorrect formula syntax
-- **ERR_CYCLE**: Cyclic reference (e.g., `A0:A0`)
+The `Ex2Sheet` class supports parsing and evaluating complex formulas, dividing the process into two main phases:
 
-## Project Structure 
+### 1. Parsing
+- Constructs an Abstract Syntax Tree (AST) to represent the formula structure.
+- Validates the syntax of the formula, ensuring proper use of operators, parentheses, and references.
 
-### Spreadsheet Class (`Ex2Sheet`)
-The `Ex2Sheet` class represents the spreadsheet. It contains an array of `SCell` objects and provides methods to manipulate and evaluate these cells.
+#### Key Parsing Functions
+- **`isNumber`:** Checks if a cell's content is a valid number using `Double.parseDouble`. Returns `true` for valid numeric values.
+- **`isText`:** Determines if the content is non-numeric and not a formula, classifying it as text.
+- **`isForm`:** Identifies if the cell contains a formula (starts with `=`).
+- **`isBalancedParentheses`:** Ensures parentheses in the formula are correctly balanced to avoid syntax errors.
 
-#### Key Methods:
-- **Initialization**: Constructs the spreadsheet with specified dimensions and initializes cells.
-- **Cell Management**: Provides methods to get and set cell values.
-- **Evaluation**: Handles formula evaluation and ensures all cell dependencies are resolved correctly.
-- **File I/O**: Supports saving the spreadsheet to a file and loading it back.
+### 2. Evaluation
+- Recursively evaluates the AST, resolving cell references dynamically.
+- Supports nested expressions, operator precedence, and scientific notation (e.g., `1e5`).
+- Includes robust error handling for invalid formulas and division by zero.
 
-### Cell Class (`SCell`)
-The `SCell` class represents an individual cell in the spreadsheet. It manages the data, type, and evaluation of the cell content.
+#### Key Evaluation Functions
+- **`computeForm`:** Processes and evaluates formulas, handling nested expressions and operator precedence.
+- **`performOperation`:** Executes basic arithmetic operations (`+`, `-`, `*`, `/`). Returns `null` for division by zero.
+- **`setEvaluatedValue` / `getEvaluatedValue`:** Stores and retrieves computed values, avoiding redundant calculations.
 
-#### Key Methods:
-- **Data Storage**: Holds the raw data and evaluated value.
-- **Type Management**: Determines if the cell contains text, numbers, or formulas.
-- **Formula Handling**: Computes the result of formulas using basic arithmetic operations and handles cell references.
+---
 
-### Cell Entry Class (`CellEntry`)
-The `CellEntry` class manages cell coordinates and provides conversion between spreadsheet notation (e.g., "A0") and array indices.
+## Managing Cell Dependencies and Cycles
 
-#### Key Methods:
-- **Conversion**: Converts between spreadsheet notation and array indices.
-- **Validation**: Ensures coordinates are within a valid range.
+The `Ex2Sheet` class manages dependencies to ensure correct evaluation order and handles cyclic references effectively.
 
-## Features
-- **Text**: Cells can contain plain text.
-- **Numbers**: Cells can contain numeric values.
-- **Formulas**: Cells can contain formulas, which can include:
-  - Numbers (e.g., `=1`, `=1.2`)
-  - Arithmetic operations (e.g., `=1+2`, `=(1+2)*3`)
-  - Cell references (e.g., `=A1`, `=A1+B2`)
-  - Nested formulas (e.g., `=(A1+B2)*C3`)
+### Dependency Management
 
-## Design Solution Plan
-### Step-by-Step Plan:
-1. **Understand the Assignment**: Experience with a partial solution, understand the requirements and constraints.
-2. **Project Setup**: Create a new Java project named `Ex2`, share it on GitHub.
-3. **Design the Cell Class**:
-   - Methods to check if the cell content is a number, text, or formula.
-   - Method to compute the value of a formula.
-4. **Design the Spreadsheet Class**:
-   - Methods to get and set cell values.
-   - Methods to evaluate the value of cells and handle dependencies.
-   - Methods to save and load the spreadsheet from a file.
-5. **Implement and Test**: Implement the designed classes and thoroughly test them using JUnit.
+#### Key Features
+- **Dependency Graph:** Represents cells as nodes and their references as edges.
+- **Depth Calculation:** Assigns a depth to each cell based on its dependencies. Independent cells have a depth of `0`, while dependent cells have increasing depths.
+- **Cycle Detection:** Identifies and handles circular references (e.g., `A1 -> B1 -> A1`) to prevent infinite loops.
 
-### Main Challenges:
-- **Formula Evaluation**: Correctly parse and evaluate formulas, handle nested expressions, and manage operator precedence.
-- **Dependency Resolution**: Ensure that cell dependencies are resolved correctly, detect and handle cycles (e.g., A1 referencing A1).
-- **File I/O**: Implement robust methods to save and load the spreadsheet state to and from a file.
+#### Dependency Functions
+- **`calculateCellDepth`:** Recursively determines a cell's depth based on its dependencies. Detects and flags circular references with `ERR_CYCLE`.
+- **`depth`:** Generates a 2D array representing the depth of every cell in the spreadsheet.
 
-## Example Usage 
-Here's a small example to demonstrate how to use the classes:
+---
 
-```java
-public class Main {
-    public static void main(String[] args) {
-        // Create a new spreadsheet with default dimensions (26x100)
-        Ex2Sheet sheet = new Ex2Sheet();
+## File I/O Operations
 
-        // Set values in the spreadsheet
-        sheet.set(0, 0, "5");      // A0 = 5
-        sheet.set(0, 1, "10");     // A1 = 10
-        sheet.set(0, 2, "=A0+A1"); // A2 = A0 + A1
+The `Ex2Sheet` class includes robust support for saving and loading spreadsheets.
 
-        // Evaluate all cells
-        sheet.eval();
+### Saving and Loading
 
-        // Print the value of cell A2
-        System.out.println(sheet.value(0, 2)); // Output: 15.0
+#### Serialization
+- Converts the spreadsheet's state into a string-based format suitable for file storage.
+- Escapes special characters (e.g., commas, newlines) to ensure data integrity.
 
-        // Save the spreadsheet to a file
-        try {
-            sheet.save("spreadsheet.txt");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+#### Deserialization
+- Reads and reconstructs the spreadsheet from a saved file.
+- Handles malformed or incomplete files gracefully to avoid corruption.
 
-        // Load the spreadsheet from the file
-        try {
-            Ex2Sheet loadedSheet = new Ex2Sheet();
-            loadedSheet.load("spreadsheet.txt");
-            System.out.println(loadedSheet.value(0, 2)); // Output: 15.0
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-}
-```
-## Key Components
+#### File Format
+- **Dimensions:** The first line specifies the spreadsheet's size (e.g., `10,10`).
+- **Cell Data:** Each subsequent line corresponds to a row of cells, with content separated by commas. Empty cells are represented as `EMPTY`.
 
-### Formula Parsing and Evaluation
+#### Functions
+- **`save`:** Writes the spreadsheet dimensions and content to a file.
+- **`load`:** Reads and reconstructs the spreadsheet from a saved file.
 
-To handle formulas, the `SCell` class includes methods to parse and evaluate expressions. The process involves:
+---
 
-- **Tokenization**: Breaking down the formula string into individual components (numbers, operators, cell references).
-- **Parsing**: Constructing an abstract syntax tree (AST) to represent the formula structure.
-- **Evaluation**: Recursively evaluating the AST, resolving cell references, and performing arithmetic operations.
+## Testing and Validation
 
-### Handling Cell Dependencies and Cycles
+### Comprehensive Testing
 
-The `Ex2Sheet` class manages cell dependencies to ensure that formulas referencing other cells are evaluated correctly. This involves:
+1. **Unit Testing**
+   - Tests individual methods and classes.
+   - Examples:
+     - Validating `isNumber`, `isText`, and `isForm`.
+     - Evaluating formulas with `computeForm`.
 
-- **Dependency Tracking**: Keeping track of which cells depend on each other.
-- **Depth Calculation**: Determining the evaluation order based on dependency depth.
-- **Cycle Detection**: Identifying and handling cyclic references to prevent infinite loops.
+2. **Integration Testing**
+   - Ensures seamless interaction between components (`Ex2Sheet`, `SCell`, `CellEntry`).
 
-### File I/O Operations
+3. **Edge Case Testing**
+   - Tests unusual inputs such as invalid formulas, extremely large numbers, or blank cells.
 
-The `Ex2Sheet` class supports saving the spreadsheet state to a file and loading it back. This includes:
+4. **Performance Testing**
+   - Evaluates responsiveness and efficiency with large spreadsheets and complex dependencies.
 
-- **Serialization**: Converting the spreadsheet data into a string format suitable for file storage.
-- **Deserialization**: Reading the file and reconstructing the spreadsheet state.
+### Test Cases
 
-### Testing and Validation
+#### Key Scenarios
+- **Text Handling:** Validates classification of non-numeric, non-formula input.
+- **Valid Formulas:** Tests nested expressions and operator precedence.
+- **Invalid Formulas:** Identifies syntax errors, invalid operators, and missing parentheses.
+- **Circular References:** Detects and flags cycles within the dependency graph.
 
-Thorough testing is crucial to ensure the correctness of the spreadsheet implementation. This involves:
+---
 
-- **Unit Testing**: Writing JUnit tests for individual methods and classes.
-- **Integration Testing**: Verifying that different components work together as expected.
-- **Edge Cases**: Testing edge cases, such as invalid formulas, large numbers, and cyclic references.
+## Key Features and Highlights
+
+- **Dynamic Formula Evaluation:** Supports nested expressions, cell references, and operator precedence.
+- **Error Handling:** Detects and flags invalid formulas and circular references.
+- **File Persistence:** Enables saving and loading of spreadsheet states for continued work.
+- **Scalable Design:** Handles large spreadsheets with thousands of cells efficiently.
