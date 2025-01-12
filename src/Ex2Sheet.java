@@ -87,7 +87,11 @@ public class Ex2Sheet implements Sheet {
     }
 
     /**
-     * Sets the value of a cell at specified coordinates
+     * Sets the value of a cell at specified coordinates.
+     * Handles null/empty values by creating empty cells.
+     * @param col Column index
+     * @param row Row index
+     * @param val New cell value
      */
     @Override
     public void set(int col, int row, String val) {
@@ -102,7 +106,14 @@ public class Ex2Sheet implements Sheet {
     }
 
     /**
-     * Evaluates all cells in the spreadsheet based on their dependencies
+     * Evaluates all cells in the spreadsheet.
+     * Processes cells in order of their dependency depth.
+     * Handles circular dependencies and formula errors.
+     * Evaluation Process:
+     * 1. Calculate dependency depths
+     * 2. Reset previous evaluations
+     * 3. Evaluate cells in depth order
+     * 4. Handle errors and circular references
      */
     @Override
     public void eval() {
@@ -130,7 +141,9 @@ public class Ex2Sheet implements Sheet {
     }
 
     /**
-     * Finds the maximum depth in the dependency tree
+     * Finds the maximum dependency depth in the spreadsheet.
+     * @param depths Array of cell depths
+     * @return Maximum depth found
      */
     private int getMaxDepth(int[][] depths) {
         int maxDepth = 0;
@@ -209,7 +222,13 @@ public class Ex2Sheet implements Sheet {
     }
 
     /**
-     * Calculates dependency depths for all cells
+     * Calculates dependency depths for all cells.
+     * Identifies circular references and formula chains.
+     * @return 2D array of dependency depths
+     * Depth Values:
+     * - 0: Independent cells
+     * - >0: Formula cells (depth increases with dependency chain)
+     * - ERR_CYCLE_FORM: Circular reference detected
      */
     @Override
     public int[][] depth() {
@@ -308,7 +327,9 @@ public class Ex2Sheet implements Sheet {
     }
 
     /**
-     * Evaluates a specific cell and returns its value
+     * Evaluates all cells in the spreadsheet.
+     * Processes cells in order of their dependency depth.
+     * Handles circular dependencies and formula errors.
      */
     @Override
     public String eval(int x, int y) {
@@ -331,7 +352,11 @@ public class Ex2Sheet implements Sheet {
     }
 
     /**
-     * Saves the spreadsheet to a file
+     * Saves the spreadsheet to a CSV file.
+     * Handles special characters and empty cells.
+     * @param fileName Path to save file
+     * @throws IOException if file operations fail
+     * File Format:
      */
     @Override
     public void save(String fileName) throws IOException {
@@ -358,7 +383,11 @@ public class Ex2Sheet implements Sheet {
     }
 
     /**
-     * Loads the spreadsheet from a file
+     * Loads spreadsheet data from a CSV file.
+     * Restores cell values and evaluates formulas.
+     * @param fileName Path to input file
+     * @throws IOException if file operations fail
+     * @throws NumberFormatException if dimensions are invalid
      */
     @Override
     public void load(String fileName) throws IOException {
